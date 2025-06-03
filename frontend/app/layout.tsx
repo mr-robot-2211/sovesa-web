@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SessionProvider } from "next-auth/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -59,6 +60,7 @@ export default function RootLayout({
   );
 
   return (
+    <SessionProvider>
     <html lang="en">
       <body className={inter.className}>
         <motion.header
@@ -88,6 +90,7 @@ export default function RootLayout({
               {/* Desktop Menu */}
               <div className="hidden sm:flex items-center space-x-4">
                 {renderMenuItems()}
+                <Link href="/auth">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -96,6 +99,7 @@ export default function RootLayout({
                 >
                   Login
                 </motion.button>
+                </Link>
               </div>
 
               {/* Mobile Menu Button */}
@@ -153,5 +157,6 @@ export default function RootLayout({
         </main>
       </body>
     </html>
+    </SessionProvider>
   );
 }
