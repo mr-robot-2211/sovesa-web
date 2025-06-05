@@ -8,7 +8,8 @@ const nextConfig = {
             '127.0.0.1',              // For local development
             'img.freepik.com',         // For freepik images
             'static.vecteezy.com',      // For vecteezy images
-            'static.wixstatic.com'      // For wixstatic images
+            'static.wixstatic.com',      // For wixstatic images
+            'thumbs.dreamstime.com'      // For dreamstime images
         ],
     },
 }

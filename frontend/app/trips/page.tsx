@@ -230,20 +230,13 @@ export default function Trips() {
                 return;
             }
 
-            console.log('Selected Trip Full Object:', selectedTrip);
-            console.log('Selected Trip ID:', selectedTrip.id);
-            console.log('Selected Trip Fields:', selectedTrip.fields);
-
             const jsonData = {
                 email: formData.email,
                 name: formData.name,
                 student_id: formData.id,
                 phone: formData.phone,
-                tripId: selectedTrip.fields.id || selectedTrip.id
+                tripId: selectedTrip.fields["trip-title"]
             };
-
-            console.log('Form Data:', formData);
-            console.log('JSON Data being sent:', jsonData);
 
             setSubmissionStatus(prev => ({ ...prev, loading: true, error: null }));
 

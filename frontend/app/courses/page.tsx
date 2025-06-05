@@ -1,13 +1,177 @@
 "use client"
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+
+interface PaymentFormData {
+    email: string;
+    name: string;
+    id: string;
+    phone: string;
+}
+
+interface SubmissionStatus {
+    loading: boolean;
+    error: string | null;
+    success: boolean;
+}
+
+interface FormData {
+    email: string;
+    name: string;
+    id: string;
+    phone: string;
+}
+
+// Move PaymentModal outside the main component to prevent re-renders
+const PaymentModal = ({
+    formStep,
+    formData,
+    selectedCourse,
+    onClose,
+    onSubmit,
+    onFormDataChange,
+    onFileChange
+}: {
+    formStep: number;
+    formData: PaymentFormData;
+    selectedCourse: any;
+    onClose: () => void;
+    onSubmit: (e: React.FormEvent) => void;
+    onFormDataChange: (field: keyof PaymentFormData, value: string) => void;
+    onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) => (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+    >
+        <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-6 w-full max-w-md my-8"
+        >
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">
+                    {formStep === 1 ? "Personal Details" : "Payment Details"}
+                </h3>
+                <button
+                    onClick={onClose}
+                    className="text-gray-500 hover:text-gray-700 transition-colors"
+                    type="button"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form onSubmit={onSubmit} className="space-y-4">
+                {formStep === 1 ? (
+                    <>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input
+                                type="email"
+                                required
+                                value={formData.email}
+                                onChange={(e) => onFormDataChange('email', e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input
+                                type="text"
+                                required
+                                value={formData.name}
+                                onChange={(e) => onFormDataChange('name', e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
+                            <input
+                                type="text"
+                                required
+                                value={formData.id}
+                                onChange={(e) => onFormDataChange('id', e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input
+                                type="tel"
+                                required
+                                value={formData.phone}
+                                onChange={(e) => onFormDataChange('phone', e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                    </>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="text-lg font-medium text-gray-900 mb-2">Payment Instructions</h4>
+                            <p className="text-gray-600 mb-4">Please scan the QR code below and make the payment of {selectedCourse?.fields["price"] || "specified amount"}</p>
+                            <div className="bg-white p-4 rounded-lg mb-4 flex justify-center">
+                                <Image
+                                    src="/qr-code.png"
+                                    alt="Payment QR Code"
+                                    width={200}
+                                    height={200}
+                                    className="max-w-full h-auto"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Payment Screenshot</label>
+                            <input
+                                type="file"
+                                required
+                                accept="image/*"
+                                onChange={onFileChange}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                    </div>
+                )}
+                <button
+                    type="submit"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg
+                        hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                    {formStep === 1 ? "Next" : "Submit"}
+                </button>
+            </form>
+        </motion.div>
+    </motion.div>
+);
 
 export default function Courses() {
     const [courses, setCourses] = useState<any[]>([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
-    const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+    const [expandedCard, setExpandedCard] = useState<string | null>(null);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [formStep, setFormStep] = useState(1);
+    const [selectedCourse, setSelectedCourse] = useState<any>(null);
+    const [formData, setFormData] = useState<FormData>({
+        email: "",
+        name: "",
+        id: "",
+        phone: "",
+    });
+    const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>({
+        loading: false,
+        error: null,
+        success: false
+    });
+    const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     
     const containerRef = useRef<HTMLDivElement>(null);
     const { scrollY } = useScroll();
@@ -36,6 +200,81 @@ export default function Courses() {
                 setLoading(false);
             });
     }, []);
+
+    const handleCardExpand = (courseId: string) => {
+        setExpandedCard(expandedCard === courseId ? null : courseId);
+    };
+
+    const handleJoinNow = (course: any) => {
+        setSelectedCourse(course);
+        setShowPaymentModal(true);
+        setFormStep(1);
+    };
+
+    const handleFormDataChange = useCallback((field: keyof PaymentFormData, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    }, []);
+
+    const handleFormSubmit = useCallback((e: React.FormEvent) => {
+        e.preventDefault();
+        if (formStep === 1) {
+            setFormStep(2);
+        } else {
+            if (!selectedCourse) {
+                console.error('No course selected');
+                setSubmissionStatus(prev => ({
+                    ...prev,
+                    error: "No course selected. Please try again."
+                }));
+                return;
+            }
+
+            const jsonData = {
+                email: formData.email,
+                name: formData.name,
+                student_id: formData.id,
+                phone: formData.phone,
+                courseId: selectedCourse.fields["course-title"]
+            };
+
+            setSubmissionStatus(prev => ({ ...prev, loading: true, error: null }));
+
+            // Send the form data to the backend
+            fetch('http://127.0.0.1:8000/api/courses-registration/', {
+                method: 'POST',
+                headers: {
+                    "Accept": "application/json",
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(jsonData),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                setSubmissionStatus(prev => ({ ...prev, loading: false, success: true }));
+                setShowSuccessDialog(true);
+                setShowPaymentModal(false);
+                setFormData({ email: "", name: "", id: "", phone: "" });
+                setFormStep(1);
+            })
+            .catch(error => {
+                setSubmissionStatus(prev => ({
+                    ...prev,
+                    loading: false,
+                    error: error.message
+                }));
+            });
+        }
+    }, [formStep, formData, selectedCourse]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Handle file upload if needed
+        console.log('File selected:', e.target.files?.[0]);
+    };
 
     const renderLoading = () => (
         <div className="h-screen w-screen flex items-center justify-center bg-white relative overflow-hidden">
@@ -103,7 +342,7 @@ export default function Courses() {
     );
 
     const renderCourse = (course: any, index: number) => {
-        const isSelected = selectedCourse === index;
+        const isExpanded = expandedCard === course.id;
         
         return (
             <motion.div
@@ -151,7 +390,7 @@ export default function Courses() {
                     
                     <motion.div
                         initial={false}
-                        animate={{ height: isSelected ? "auto" : "0px" }}
+                        animate={{ height: isExpanded ? "auto" : "0px" }}
                         className="overflow-hidden"
                     >
                         <p className="text-gray-600 mb-8 line-clamp-3">
@@ -164,18 +403,27 @@ export default function Courses() {
                             {course.fields["enrolled-count"] || "1,234"} enrolled
                         </span>
                         
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCourse(isSelected ? null : index);
-                            }}
-                            className="px-6 sm:px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-full 
-                                hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit"
-                        >
-                            {isSelected ? "Show Less" : "Learn More"}
-                        </motion.button>
+                        <div className="flex gap-4 w-full sm:w-auto">
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleCardExpand(course.id)}
+                                className="px-6 sm:px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-full 
+                                    hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg flex-1 sm:flex-none"
+                            >
+                                {isExpanded ? "Show Less" : "Learn More"}
+                            </motion.button>
+
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleJoinNow(course)}
+                                className="px-6 sm:px-8 py-3 bg-white text-indigo-600 font-medium rounded-full border-2 border-indigo-600
+                                    hover:bg-indigo-50 transition-all duration-300 shadow-md hover:shadow-lg flex-1 sm:flex-none"
+                            >
+                                Join Now
+                            </motion.button>
+                        </div>
                     </div>
                 </motion.div>
             </motion.div>
@@ -189,40 +437,54 @@ export default function Courses() {
         <div className="bg-gradient-to-br from-white to-gray-50 min-h-screen overflow-x-hidden relative">
             {/* Background decorative elements */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none select-none">
-                {/* Educational Symbols Pattern */}
-                <div className="absolute top-[10vh] left-[5vw] w-32 h-32 opacity-30 transform rotate-12">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="text-indigo-600">
-                        <path d="M11.7 2.805a.75.75 0 01.6 0A60.65 60.65 0 0122.83 8.72a.75.75 0 01-.231 1.337 49.949 49.949 0 00-9.902 3.912l-.003.002-.34.18a.75.75 0 01-.707 0A50.009 50.009 0 007.5 12.174v-.224c0-.131.067-.248.172-.311a54.614 54.614 0 014.653-2.52.75.75 0 00-.65-1.352 56.129 56.129 0 00-4.78 2.589 1.858 1.858 0 00-.859 1.228 49.803 49.803 0 00-4.634-1.527.75.75 0 01-.231-1.337A60.653 60.653 0 0111.7 2.805z" />
-                        <path d="M13.06 15.473a48.45 48.45 0 017.666-3.282c.134 1.414.22 2.843.255 4.285a.75.75 0 01-.46.71 47.878 47.878 0 00-8.105 4.342.75.75 0 01-.832 0 47.877 47.877 0 00-8.104-4.342.75.75 0 01-.461-.71c.035-1.442.121-2.87.255-4.286A48.4 48.4 0 016 13.18v1.27a1.5 1.5 0 00-.14 2.508c-.09.38-.222.753-.397 1.11.452.213.901.434 1.346.661a6.729 6.729 0 00.551-1.608 1.5 1.5 0 00.14-2.67v-.645a48.549 48.549 0 013.44 1.668 2.25 2.25 0 002.12 0z" />
-                        <path d="M4.462 19.462c.42-.419.753-.89 1-1.394.453.213.902.434 1.347.661a6.743 6.743 0 01-1.286 1.794.75.75 0 11-1.06-1.06z" />
-                    </svg>
+                {/* Child Reading Pattern */}
+                <div className="absolute top-[15vh] left-[5vw] w-32 h-40 opacity-60 brightness-200">
+                    <Image
+                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
+                        alt="Child Reading"
+                        layout="fill"
+                        objectFit="contain"
+                    />
                 </div>
-                <div className="absolute top-[30vh] right-[10vw] w-48 h-48 opacity-30 transform -rotate-45">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
-                        <path d="M11.25 4.533A9.707 9.707 0 006 3a9.735 9.735 0 00-3.25.555.75.75 0 00-.5.707v14.25a.75.75 0 001 .707A8.237 8.237 0 016 18.75c1.995 0 3.823.707 5.25 1.886V4.533zM12.75 20.636A8.214 8.214 0 0118 18.75c.966 0 1.89.166 2.75.47a.75.75 0 001-.708V4.262a.75.75 0 00-.5-.707A9.735 9.735 0 0018 3a9.707 9.707 0 00-5.25 1.533v16.103z" />
-                    </svg>
+                <div className="absolute top-[45vh] right-[10vw] w-40 h-48 opacity-60 brightness-200">
+                    <Image
+                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
+                        alt="Child Reading"
+                        layout="fill"
+                        objectFit="contain"
+                    />
                 </div>
-                <div className="absolute top-[50vh] left-[15vw] w-40 h-40 opacity-30 transform rotate-90">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="text-indigo-600">
-                        <path fillRule="evenodd" d="M2.25 6a3 3 0 013-3h13.5a3 3 0 013 3v12a3 3 0 01-3 3H5.25a3 3 0 01-3-3V6zm3.97.97a.75.75 0 011.06 0l2.25 2.25a.75.75 0 010 1.06l-2.25 2.25a.75.75 0 01-1.06-1.06l1.72-1.72-1.72-1.72a.75.75 0 010-1.06zm4.28 4.28a.75.75 0 000 1.5h3a.75.75 0 000-1.5h-3z" clipRule="evenodd" />
-                    </svg>
+                <div className="absolute top-[75vh] left-[15vw] w-36 h-44 opacity-60 brightness-200">
+                    <Image
+                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
+                        alt="Child Reading"
+                        layout="fill"
+                        objectFit="contain"
+                    />
                 </div>
-                <div className="absolute top-[70vh] right-[20vw] w-36 h-36 opacity-30 transform -rotate-12">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
-                        <path d="M12 .75a8.25 8.25 0 00-4.135 15.39c.686.398 1.115 1.008 1.134 1.623a.75.75 0 00.577.706c.352.083.71.148 1.074.195.323.041.6-.218.6-.544v-4.661a6.75 6.75 0 01-.937-.171.75.75 0 11.374-1.453 5.25 5.25 0 002.626 0 .75.75 0 11.374 1.452 6.75 6.75 0 01-.937.172v4.66c0 .327.277.586.6.545.364-.047.722-.112 1.074-.195a.75.75 0 00.577-.706c.02-.615.448-1.225 1.134-1.623A8.25 8.25 0 0012 .75z" />
-                        <path fillRule="evenodd" d="M9.013 19.9a.75.75 0 01.877-.597 11.319 11.319 0 004.22 0 .75.75 0 11.28 1.473 12.819 12.819 0 01-4.78 0 .75.75 0 01-.597-.876zM9.754 22.344a.75.75 0 01.824-.668 13.682 13.682 0 002.844 0 .75.75 0 11.156 1.492 15.156 15.156 0 01-3.156 0 .75.75 0 01-.668-.824z" clipRule="evenodd" />
-                    </svg>
+                <div className="absolute top-[30vh] left-[20vw] w-28 h-36 opacity-60 brightness-200">
+                    <Image
+                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
+                        alt="Child Reading"
+                        layout="fill"
+                        objectFit="contain"
+                    />
                 </div>
-                <div className="absolute top-[90vh] left-[25vw] w-52 h-52 opacity-30 transform rotate-180">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="text-indigo-600">
-                        <path d="M16.5 3.75a1.5 1.5 0 01-3 0V2.25a.75.75 0 011.5 0v1.5zm0 16.5a1.5 1.5 0 01-3 0V15a.75.75 0 011.5 0v5.25zm9-16.5a1.5 1.5 0 01-3 0V2.25a.75.75 0 011.5 0v1.5zm0 16.5a1.5 1.5 0 01-3 0V15a.75.75 0 011.5 0v5.25zM3.75 16.5a1.5 1.5 0 01-3 0V15a.75.75 0 011.5 0v1.5zm0-12.75a1.5 1.5 0 01-3 0V2.25a.75.75 0 011.5 0v1.5zm9 5.25a.75.75 0 00-1.5 0v5.25a.75.75 0 001.5 0V9zm1.5-1.5A.75.75 0 0112 6.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 011.5 0zm3 3a.75.75 0 00-1.5 0v5.25a.75.75 0 001.5 0V10.5zm1.5-1.5a.75.75 0 00-1.5 0v1.5a.75.75 0 001.5 0V9z" />
-                    </svg>
+                <div className="absolute top-[60vh] right-[15vw] w-44 h-52 opacity-60 brightness-200">
+                    <Image
+                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
+                        alt="Child Reading"
+                        layout="fill"
+                        objectFit="contain"
+                    />
                 </div>
-                <div className="absolute top-[20vh] left-[30vw] w-28 h-28 opacity-30 transform rotate-45">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
-                        <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0016.5 9h-1.875a1.875 1.875 0 01-1.875-1.875V5.25A3.75 3.75 0 009 1.5H5.625z" />
-                        <path d="M12.971 1.816A5.23 5.23 0 0114.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 013.434 1.279 9.768 9.768 0 00-6.963-6.963z" />
-                    </svg>
+                <div className="absolute top-[90vh] right-[25vw] w-36 h-44 opacity-60 brightness-200">
+                    <Image
+                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
+                        alt="Child Reading"
+                        layout="fill"
+                        objectFit="contain"
+                    />
                 </div>
             </div>
             <motion.div 
@@ -268,6 +530,59 @@ export default function Courses() {
                     )}
                 </div>
             </motion.div>
+
+            <AnimatePresence>
+                {showPaymentModal && (
+                    <PaymentModal
+                        formStep={formStep}
+                        formData={formData}
+                        selectedCourse={selectedCourse}
+                        onClose={() => {
+                            setShowPaymentModal(false);
+                            setFormStep(1);
+                            setFormData({ email: "", name: "", id: "", phone: "" });
+                        }}
+                        onSubmit={handleFormSubmit}
+                        onFormDataChange={handleFormDataChange}
+                        onFileChange={handleFileChange}
+                    />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showSuccessDialog && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white rounded-xl p-6 w-full max-w-md"
+                        >
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">Registration Successful!</h3>
+                                <p className="text-gray-600 mb-6">Thank you for registering for the course. We'll contact you shortly with more details.</p>
+                                <button
+                                    onClick={() => setShowSuccessDialog(false)}
+                                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg
+                                        hover:from-indigo-700 hover:to-purple-700 transition-all duration-300"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
