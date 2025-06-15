@@ -2,59 +2,49 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Line } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { ExtendedSession } from "../api/auth/[...nextauth]/route";
 
 export default function Dashboard() {
-  const { data: session } = useSession();
-  const [stats, setStats] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [rounds, setRounds] = useState("");
-  const [readingTime, setReadingTime] = useState("");
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [stats, setStats] = useState<Array<{
+    date: string;
+    rounds: number;
+    reading_time: number;
+  }>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [formData, setFormData] = useState({
+    rounds: '',
+    reading_time: ''
+  });
 
   useEffect(() => {
-    if (session?.user?.email) {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    } else if (status === 'authenticated') {
       fetchUserStats();
     }
-  }, [session]);
+  }, [status, router]);
 
   const fetchUserStats = async () => {
     try {
-      const response = await fetch(`/auth/meditation-stats/?email=${session?.user?.email}`);
+      const response = await fetch('http://127.0.0.1:8000/auth/post-sadhana/', {
+        headers: {
+          'Authorization': `Bearer ${(session as ExtendedSession)?.accessToken}`
+        }
+      });
+      
       if (!response.ok) {
-        throw new Error("Failed to fetch stats");
+        throw new Error('Failed to fetch stats');
       }
+      
       const data = await response.json();
-      setStats(data.stats || []);
+      setStats(data.stats);
     } catch (error) {
-      console.error("Error fetching stats:", error);
-      setMessage({ text: "Failed to load meditation statistics", type: "error" });
-    } finally {
-      setLoading(false);
+      console.error('Error fetching stats:', error);
     }
   };
 
@@ -64,203 +54,154 @@ export default function Dashboard() {
     setMessage(null);
 
     try {
-      const response = await fetch("/auth/meditation-stats/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: session?.user?.email,
-          rounds: parseInt(rounds),
-          reading_time: parseInt(readingTime),
-        }),
+      const today = new Date().toISOString().split('T')[0];
+      const requestData = {
+        date: today,
+        rounds: parseInt(formData.rounds),
+        reading_time: parseInt(formData.reading_time)
+      };
+
+      console.log('Access Token:', (session as ExtendedSession)?.accessToken);
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${(session as ExtendedSession)?.accessToken}`
+      };
+      console.log('Request Headers:', headers);
+
+      const response = await fetch('http://127.0.0.1:8000/auth/post-sadhana/', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestData)
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to submit report");
-    }
+      const data = await response.json();
 
-      setMessage({ text: "Report submitted successfully!", type: "success" });
-      setRounds("");
-      setReadingTime("");
-      fetchUserStats();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit stats');
+      }
+
+      setMessage({ text: 'Stats recorded successfully!', type: 'success' });
+      setFormData({ rounds: '', reading_time: '' });
+      
+      // Update stats immediately with the new data
+      if (data.data) {
+        setStats(prevStats => [...prevStats, data.data]);
+      }
     } catch (error) {
-      console.error("Error submitting report:", error);
-      setMessage({ text: "Failed to submit report", type: "error" });
+      console.error('Error submitting stats:', error);
+      setMessage({ 
+        text: error instanceof Error ? error.message : 'Failed to submit stats', 
+        type: 'error' 
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const chartData = {
-    labels: stats.map((stat) => new Date(stat.date).toLocaleDateString()),
-    datasets: [
-      {
-        label: "Rounds",
-        data: stats.map((stat) => stat.rounds),
-        borderColor: "rgb(99, 102, 241)",
-        backgroundColor: "rgba(99, 102, 241, 0.5)",
-        tension: 0.4,
-      },
-      {
-        label: "Reading Time (min)",
-        data: stats.map((stat) => stat.reading_time),
-        borderColor: "rgb(236, 72, 153)",
-        backgroundColor: "rgba(236, 72, 153, 0.5)",
-        tension: 0.4,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-      title: {
-        display: true,
-        text: "Meditation Progress",
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
-  };
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Left Content */}
-          <div className="w-full lg:w-1/2 space-y-6">
-            {/* Welcome Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-lg p-6"
-            >
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">Welcome, {session?.user?.email?.split("@")[0]}</h1>
-              <p className="text-gray-600">Track your meditation progress and stay connected with the community.</p>
-            </motion.div>
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white rounded-lg shadow-lg p-6 mb-8"
+        >
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">Sadhana Tracker</h1>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="rounds" className="block text-sm font-medium text-gray-700">
+                Rounds Meditated
+              </label>
+              <input
+                type="number"
+                id="rounds"
+                value={formData.rounds}
+                onChange={(e) => setFormData(prev => ({ ...prev, rounds: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                min="0"
+              />
+            </div>
 
-            {/* Report Form */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl shadow-lg p-6"
-            >
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Submit Daily Report</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Rounds Meditated
-                    </label>
-                    <input
-                      type="number"
-                      value={rounds}
-                      onChange={(e) => setRounds(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-200"
-                      placeholder="Enter rounds"
-                      required
-                      min="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Reading Time (min)
-                    </label>
-                    <input
-                      type="number"
-                      value={readingTime}
-                      onChange={(e) => setReadingTime(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-200"
-                      placeholder="Enter minutes"
-                      required
-                      min="0"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Submitting...
-                    </>
-                  ) : (
-                    "Submit Report"
-                  )}
-                </button>
-              </form>
-            </motion.div>
+            <div>
+              <label htmlFor="reading_time" className="block text-sm font-medium text-gray-700">
+                Reading Time (min)
+              </label>
+              <input
+                type="number"
+                id="reading_time"
+                value={formData.reading_time}
+                onChange={(e) => setFormData(prev => ({ ...prev, reading_time: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                min="0"
+              />
+            </div>
 
-            {/* Meet Link */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl shadow-lg p-6"
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                isSubmitting ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
             >
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Join Sadhaka's Meet</h2>
-              <a
-                href="https://meet.google.com/your-meet-link"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full px-4 py-3 text-center bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 flex items-center justify-center space-x-2"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.344 12c0 3.313-2.688 6-6 6s-6-2.688-6-6 2.688-6 6-6 6 2.688 6 6z" />
-                </svg>
-                <span>Join Meeting</span>
-              </a>
-            </motion.div>
+              {isSubmitting ? 'Recording...' : 'Record Stats'}
+            </motion.button>
+          </form>
 
-            {/* Message Display */}
-            {message && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`p-4 rounded-lg ${
-                  message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
-                }`}
-              >
-                {message.text}
-              </motion.div>
-            )}
+          {message && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mt-4 p-4 rounded-md ${
+                message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+              }`}
+            >
+              {message.text}
+            </motion.div>
+          )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="bg-white rounded-lg shadow-lg p-6"
+        >
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Stats</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rounds</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reading Time</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {stats.map((stat, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{stat.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{stat.rounds}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{stat.reading_time} min</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {/* Right Content - Chart */}
-          <div className="w-full lg:w-1/2">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl shadow-lg p-6 h-full"
-            >
-              <div className="h-[500px]">
-                {loading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                  </div>
-                ) : (
-                  <Line data={chartData} options={chartOptions} />
-                )}
-              </div>
-            </motion.div>
-          </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

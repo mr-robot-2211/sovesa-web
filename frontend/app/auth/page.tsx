@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 // Types
 type AuthType = "login" | "signup";
@@ -70,6 +71,9 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const {data: session} = useSession();
+  const isSadhaka = session?.user?.is_sadhaka;
+  const isLoggedIn=!!session;
 
   const handleAuth = async (type: AuthType) => {
     setIsLoading(true);
@@ -88,7 +92,11 @@ export default function Auth() {
           return;
         }
 
-        router.push("/dashboard");
+        if(isLoggedIn && isSadhaka){
+          router.push("/dashboard");
+        }else{
+          router.push("/");
+        }
       } else {
         const res = await fetch(`http://127.0.0.1:8000/auth/signup/`, {
           method: "POST",
@@ -97,7 +105,23 @@ export default function Auth() {
         });
 
         const data = await res.json();
-        setMessage(data.message || data.error);
+        
+        if (res.ok) {
+          const tableRes = await fetch(`http://127.0.0.1:8000/api/sadhana-report/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+
+          const tableData = await tableRes.json();
+          if (!tableRes.ok) {
+            console.warn("Failed to create sadhaka report table:", tableData.error);
+          }
+          
+          setMessage(data.message || "Signup successful");
+        } else {
+          setMessage(data.error || "Signup failed");
+        }
       }
     } catch (error) {
       setMessage("An error occurred during authentication");

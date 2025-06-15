@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 # Replace with your actual Teable API Key and Table ID
-TEABLE_API_KEY = "teable_accl7T3xEqX2VUpybdH_N12Y1sZeItmTO4jjiMR4krowb67ifHSRLPnjAlMdReQ=="
+TEABLE_API_KEY = "teable_accX1rfXi2JYIQ1BUTu_N89wltHtHeoRWzZZrnNnXAmAic4MXWaxunPNCEZn65s="
 TABLE_ID1 = "tbl6EvbcrFQuq4Ho6U4"
 TABLE_ID2= "tblcFrcDKX6gWUW5rYD"
 # BASE_URL = f"https://app.teable.io/api/table/{TABLE_ID}/record"

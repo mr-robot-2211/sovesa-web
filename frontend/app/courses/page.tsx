@@ -184,6 +184,7 @@ export default function Courses() {
     const headerY = useTransform(scrollY, [0, 0.1], [0, -50]);
 
     useEffect(() => {
+        console.log("Fetching courses...");
         fetch("http://localhost:8000/api/courses/")
             .then((res) => {
                 if (!res.ok) {
@@ -192,10 +193,12 @@ export default function Courses() {
                 return res.json();
             })
             .then((data) => {
+                console.log("Courses API response:", data);
                 setCourses(data.records || []);
                 setLoading(false);
             })
             .catch((err) => {
+                console.error("Error fetching courses:", err);
                 setError(err.message);
                 setLoading(false);
             });

@@ -8,12 +8,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
-import { sign } from "crypto";
 
 const inter = Inter({ subsets: ["latin"] });
 
 const Navbar = ()=>{
   const {data: session} = useSession();
+  const isSadhaka = session?.user?.is_sadhaka;
   const isLoggedIn=!!session;
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -90,7 +90,7 @@ const Navbar = ()=>{
                 {renderMenuItems()}
 
                 {/* For condition dashboard button */}
-                {isLoggedIn && 
+                {isLoggedIn && isSadhaka &&
                   (<Link href="/dashboard">
                   <motion.span
                     className={`relative px-4 py-2 text-${false ? 'lg' : 'sm'} cursor-pointer
@@ -175,7 +175,7 @@ const Navbar = ()=>{
                   {renderMenuItems(true)}
 
                   {/* for conditional dashboard */}
-                  {isLoggedIn && 
+                  {isLoggedIn && isSadhaka &&
                     (<Link href="/dashboard">
                     <motion.span
                       className={`relative px-4 py-2 text-${true ? 'lg' : 'sm'} cursor-pointer
