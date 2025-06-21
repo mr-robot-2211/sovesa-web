@@ -11,6 +11,7 @@ const LEAGUES = [
   { name: "Keshava", icon: "🧘‍♂️", minRounds: 8, minReading: 30, description: "Intermediate practitioners", color: "text-blue-700" },
   { name: "Bhakta", icon: "🌱", minRounds: 1, minReading: 15, description: "Beginning practitioners starting their journey", color: "text-emerald-700" }
 ];
+
 function getUserLeague(rounds: number, reading: number) {
   if (rounds >= 16 && reading >= 60) return LEAGUES[0];
   if (rounds >= 8 && reading >= 30) return LEAGUES[1];
@@ -102,31 +103,37 @@ export default function Dashboard() {
   const user = { name: "You", avatar: "🧘", streak: 0, xp: 0 };
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated') {
-      fetchUserStats();
+    if (status === "unauthenticated") {
+      router.push("/auth");
     }
   }, [status, router]);
 
-  const fetchUserStats = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/auth/post-sadhana/', {
-        headers: {
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!session) return;
+
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${(session as ExtendedSession)?.accessToken}`
+        };
+
+        const response = await fetch('http://127.0.0.1:8000/auth/post-sadhana/', {
+          method: 'GET',
+          headers: headers
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data.stats || []);
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
+      } catch (error) {
+        console.error('Error fetching stats:', error);
       }
-      
-      const data = await response.json();
-      setStats(data.stats);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
+    };
+
+    fetchStats();
+  }, [session]);
 
   function handleFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -159,8 +166,8 @@ export default function Dashboard() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-[#f7f6f2] flex items-center justify-center">
+        <div className="text-2xl text-green-700">Loading...</div>
       </div>
     );
   }

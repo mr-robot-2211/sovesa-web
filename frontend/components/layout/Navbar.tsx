@@ -11,9 +11,18 @@ import { signOut } from "next-auth/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
+interface ExtendedSession {
+  user: {
+    id: string;
+    email: string;
+    is_sadhaka?: boolean;
+  };
+  accessToken?: string;
+}
+
 const Navbar = ()=>{
   const {data: session} = useSession();
-  const isSadhaka = session?.user?.is_sadhaka;
+  const isSadhaka = (session as any)?.user?.is_sadhaka;
   const isLoggedIn=!!session;
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -30,10 +39,10 @@ const Navbar = ()=>{
   }, []);
 
   const menuItems = [
-    { name: "Home", path: "/" },
-    { name: "Trips", path: "/trips" },
-    { name: "Courses", path: "/courses" },
-    { name: "About", path: "/about" },
+    { name: "Announcements", path: "/" },
+    { name: "Soul Walks", path: "/trips" },
+    { name: "DivyaVidya", path: "/courses" },
+    { name: "Divine Bazaar", path: "/bazaar" },
   ];
 
   const renderMenuItems = (mobile: boolean = false) => (
@@ -42,7 +51,7 @@ const Navbar = ()=>{
         <Link href={item.path} key={item.path}>
           <motion.span
             className={`relative px-4 py-2 text-${mobile ? 'lg' : 'sm'} cursor-pointer
-              ${pathname === item.path ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+              ${pathname === item.path ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'}`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -50,7 +59,7 @@ const Navbar = ()=>{
             {pathname === item.path && (
               <motion.div
                 layoutId="underline"
-                className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"
+                className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
                 initial={false}
               />
             )}
@@ -79,7 +88,7 @@ const Navbar = ()=>{
               >
                 <Link href="/">
                   <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent 
-                    bg-gradient-to-r from-blue-600 to-purple-600">
+                    bg-gradient-to-r from-green-600 to-emerald-600">
                     Sovesa
                   </span>
                 </Link>
@@ -94,15 +103,15 @@ const Navbar = ()=>{
                   (<Link href="/dashboard">
                   <motion.span
                     className={`relative px-4 py-2 text-${false ? 'lg' : 'sm'} cursor-pointer
-                      ${pathname === "/dashboard" ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                      ${pathname === "/dashboard" ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'}`}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    dashboard
+                    BhaktiMeter
                     {pathname === "/dashboard" && (
                       <motion.div
                         layoutId="underline"
-                        className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"
+                        className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
                         initial={false}
                       />
                     )}
@@ -116,8 +125,8 @@ const Navbar = ()=>{
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-full font-medium
-                      hover:bg-blue-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                    className="ml-4 px-6 py-2 bg-green-600 text-white rounded-full font-medium
+                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
                   >
                     Login
                   </motion.button>
@@ -129,8 +138,8 @@ const Navbar = ()=>{
                     onClick={()=>signOut({ callbackUrl: "/" })}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-full font-medium
-                      hover:bg-blue-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                    className="ml-4 px-6 py-2 bg-green-600 text-white rounded-full font-medium
+                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
                   >
                     Logout
                   </motion.button>
@@ -179,15 +188,15 @@ const Navbar = ()=>{
                     (<Link href="/dashboard">
                     <motion.span
                       className={`relative px-4 py-2 text-${true ? 'lg' : 'sm'} cursor-pointer
-                        ${pathname === "/dashboard" ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                        ${pathname === "/dashboard" ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'}`}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      dashboard
+                      BhaktiMeter
                       {pathname === "/dashboard" && (
                         <motion.div
                           layoutId="underline"
-                          className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"
+                          className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
                           initial={false}
                         />
                       )}
@@ -201,8 +210,8 @@ const Navbar = ()=>{
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-full font-medium
-                      hover:bg-blue-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                    className="w-full px-6 py-3 bg-green-600 text-white rounded-full font-medium
+                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
                   >
                     Login
                   </motion.button>
@@ -213,8 +222,8 @@ const Navbar = ()=>{
                     onClick={()=>signOut({ callbackUrl: "/" })}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-full font-medium
-                      hover:bg-blue-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                    className="w-full px-6 py-3 bg-green-600 text-white rounded-full font-medium
+                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
                   >
                     Logout
                   </motion.button>
@@ -225,6 +234,6 @@ const Navbar = ()=>{
           </AnimatePresence>
         </motion.header>
   );
-}
+};
 
 export default Navbar;

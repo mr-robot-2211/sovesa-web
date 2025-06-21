@@ -3,6 +3,8 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import serializers
+from .models import Blog
 
 # Replace with your actual Teable API Key and Table ID
 TEABLE_API_KEY = "teable_accX1rfXi2JYIQ1BUTu_N89wltHtHeoRWzZZrnNnXAmAic4MXWaxunPNCEZn65s="
@@ -23,6 +25,23 @@ def fetch_teable_data(table_id):
         return response.json()
     except requests.exceptions.RequestException as e:
         return {"error": f"Request failed: {str(e)}"}
+
+class BlogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Blog
+        fields = ['id', 'title', 'content', 'excerpt', 'author', 'published_date', 'slug', 'image_url']
+
+class BlogListView(APIView):
+    """Fetch blog posts from Django database"""
+    def get(self, request):
+        try:
+            blogs = Blog.objects.all()
+            serializer = BlogSerializer(blogs, many=True)
+            return Response({
+                "records": serializer.data
+            })
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CourseListView(APIView):
     """Fetch course data from Teable API"""

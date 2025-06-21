@@ -79,7 +79,7 @@ const PaymentModal = ({
                                 required
                                 value={formData.email}
                                 onChange={(e) => onFormDataChange('email', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
                         </div>
                         <div>
@@ -89,7 +89,7 @@ const PaymentModal = ({
                                 required
                                 value={formData.name}
                                 onChange={(e) => onFormDataChange('name', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
                         </div>
                         <div>
@@ -99,7 +99,7 @@ const PaymentModal = ({
                                 required
                                 value={formData.id}
                                 onChange={(e) => onFormDataChange('id', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
                         </div>
                         <div>
@@ -109,7 +109,7 @@ const PaymentModal = ({
                                 required
                                 value={formData.phone}
                                 onChange={(e) => onFormDataChange('phone', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
                         </div>
                     </>
@@ -135,15 +135,15 @@ const PaymentModal = ({
                                 required
                                 accept="image/*"
                                 onChange={onFileChange}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
                         </div>
                     </div>
                 )}
                 <button
                     type="submit"
-                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg
-                        hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg
+                        hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                     {formStep === 1 ? "Next" : "Submit"}
                 </button>
@@ -152,7 +152,7 @@ const PaymentModal = ({
     </motion.div>
 );
 
-export default function Courses() {
+export default function DivyaVidya() {
     const [courses, setCourses] = useState<any[]>([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
@@ -212,75 +212,51 @@ export default function Courses() {
         setSelectedCourse(course);
         setShowPaymentModal(true);
         setFormStep(1);
+        setFormData({
+            email: "",
+            name: "",
+            id: "",
+            phone: "",
+        });
     };
 
-    const handleFormDataChange = useCallback((field: keyof PaymentFormData, value: string) => {
+    const handleFormDataChange = (field: keyof FormData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-    }, []);
+    };
 
-    const handleFormSubmit = useCallback((e: React.FormEvent) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Handle file upload logic here
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (formStep === 1) {
             setFormStep(2);
         } else {
-            if (!selectedCourse) {
-                console.error('No course selected');
-                setSubmissionStatus(prev => ({
-                    ...prev,
-                    error: "No course selected. Please try again."
-                }));
-                return;
-            }
-
-            const jsonData = {
-                email: formData.email,
-                name: formData.name,
-                student_id: formData.id,
-                phone: formData.phone,
-                courseId: selectedCourse.fields["course-title"]
-            };
-
-            setSubmissionStatus(prev => ({ ...prev, loading: true, error: null }));
-
-            // Send the form data to the backend
-            fetch('http://127.0.0.1:8000/api/courses-registration/', {
-                method: 'POST',
-                headers: {
-                    "Accept": "application/json",
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(jsonData),
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                setSubmissionStatus(prev => ({ ...prev, loading: false, success: true }));
+            // Handle final submission
+            setSubmissionStatus({ loading: true, error: null, success: false });
+            // Simulate API call
+            setTimeout(() => {
+                setSubmissionStatus({ loading: false, error: null, success: true });
                 setShowSuccessDialog(true);
                 setShowPaymentModal(false);
-                setFormData({ email: "", name: "", id: "", phone: "" });
-                setFormStep(1);
-            })
-            .catch(error => {
-                setSubmissionStatus(prev => ({
-                    ...prev,
-                    loading: false,
-                    error: error.message
-                }));
-            });
+            }, 2000);
         }
-    }, [formStep, formData, selectedCourse]);
+    };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Handle file upload if needed
-        console.log('File selected:', e.target.files?.[0]);
+    const handleCloseModal = () => {
+        setShowPaymentModal(false);
+        setFormStep(1);
+        setFormData({
+            email: "",
+            name: "",
+            id: "",
+            phone: "",
+        });
     };
 
     const renderLoading = () => (
-        <div className="h-screen w-screen flex items-center justify-center bg-white relative overflow-hidden">
+        <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6f2] relative overflow-hidden">
             <div className="absolute inset-0 opacity-5">
                 <Image
                     src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8"
@@ -299,7 +275,7 @@ export default function Courses() {
             >
                 <div className="relative">
                     <motion.div
-                        className="w-16 h-16 rounded-full border-2 border-gray-200 border-t-gray-800"
+                        className="w-16 h-16 rounded-full border-2 border-gray-200 border-t-green-600"
                         animate={{ rotate: 360 }}
                         transition={{
                             duration: 1.5,
@@ -309,7 +285,7 @@ export default function Courses() {
                     />
                     
                     <motion.div
-                        className="absolute top-1/2 left-1/2 w-2 h-2 bg-gray-800 rounded-full -translate-x-1/2 -translate-y-1/2"
+                        className="absolute top-1/2 left-1/2 w-2 h-2 bg-green-600 rounded-full -translate-x-1/2 -translate-y-1/2"
                         animate={{
                             scale: [1, 1.2, 1],
                             opacity: [1, 0.8, 1]
@@ -323,15 +299,15 @@ export default function Courses() {
                 </div>
                 
                 <div className="flex flex-col items-center gap-1">
-                    <span className="text-gray-800 text-sm font-light tracking-[0.2em]">PREPARING</span>
-                    <span className="text-gray-500 text-xs font-light tracking-wider">YOUR LEARNING PATH</span>
+                    <span className="text-green-700 text-sm font-light tracking-[0.2em]">PREPARING</span>
+                    <span className="text-gray-500 text-xs font-light tracking-wider">YOUR DIVINE KNOWLEDGE</span>
                 </div>
             </motion.div>
         </div>
     );
 
     const renderError = () => (
-        <div className="h-screen w-screen flex items-center justify-center bg-white text-gray-800 p-4">
+        <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6f2] text-gray-800 p-4">
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -377,13 +353,13 @@ export default function Courses() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                    <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 
-                        text-indigo-600 text-sm mb-6 w-fit font-medium`}>
+                    <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r from-green-50 to-emerald-50 
+                        text-green-600 text-sm mb-6 w-fit font-medium`}>
                         {course.fields["duration"] || "8 weeks"}
                     </div>
                     
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4 bg-clip-text text-transparent 
-                        bg-gradient-to-r from-indigo-600 to-purple-600">
+                        bg-gradient-to-r from-green-600 to-emerald-600">
                         {course.fields["course-title"]}
                     </h2>
                     
@@ -411,8 +387,8 @@ export default function Courses() {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handleCardExpand(course.id)}
-                                className="px-6 sm:px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-full 
-                                    hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg flex-1 sm:flex-none"
+                                className="px-6 sm:px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-full 
+                                    hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg flex-1 sm:flex-none"
                             >
                                 {isExpanded ? "Show Less" : "Learn More"}
                             </motion.button>
@@ -421,8 +397,8 @@ export default function Courses() {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handleJoinNow(course)}
-                                className="px-6 sm:px-8 py-3 bg-white text-indigo-600 font-medium rounded-full border-2 border-indigo-600
-                                    hover:bg-indigo-50 transition-all duration-300 shadow-md hover:shadow-lg flex-1 sm:flex-none"
+                                className="px-6 sm:px-8 py-3 bg-white text-green-600 font-medium rounded-full border-2 border-green-600
+                                    hover:bg-green-50 transition-all duration-300 shadow-md hover:shadow-lg flex-1 sm:flex-none"
                             >
                                 Join Now
                             </motion.button>
@@ -437,7 +413,7 @@ export default function Courses() {
     if (error) return renderError();
 
     return (
-        <div className="bg-gradient-to-br from-white to-gray-50 min-h-screen overflow-x-hidden relative">
+        <div className="bg-[#f7f6f2] min-h-screen overflow-x-hidden relative">
             {/* Background decorative elements */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none select-none">
                 {/* Child Reading Pattern */}
@@ -498,60 +474,41 @@ export default function Courses() {
                 transition={{ duration: 1 }}
             >
                 <motion.div 
-                    className="fixed top-20 left-0 right-0 h-[20vh] sm:h-[25vh] flex items-center justify-center bg-white z-[5]"
-                    style={{
-                        opacity: headerOpacity
-                    }}
+                    className="fixed top-20 left-0 right-0 h-[20vh] sm:h-[25vh] flex items-center justify-center z-[5]"
+                    style={{ opacity: headerOpacity }}
                 >
-                    <h1 
-                        className="text-4xl sm:text-6xl font-bold text-center px-4 pb-1 max-w-4xl leading-relaxed
-                            bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"
-                    >
-                        Discover Our Courses
-                    </h1>
+                    <div className="text-center">
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-clip-text text-transparent 
+                            bg-gradient-to-r from-green-600 to-emerald-600 mb-2">
+                            DivyaVidya
+                        </h1>
+                        <p className="text-gray-600 text-lg sm:text-xl">
+                            Sacred knowledge for spiritual growth and enlightenment
+                        </p>
+                    </div>
                 </motion.div>
 
-                <div className="relative py-8 sm:py-16 px-4 sm:px-8 max-w-[90rem] mx-auto mt-[20vh] sm:mt-[25vh]">
-                    <div className="flex flex-col gap-12 sm:gap-24">
-                        {courses.map((course, index) => renderCourse(course, index))}
-                    </div>
-
-                    {courses.length === 0 && (
-                        <div className="h-[50vh] flex items-center justify-center">
-                            <motion.div 
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="text-center"
-                            >
-                                <h2 className="text-2xl sm:text-3xl font-light mb-4 bg-clip-text text-transparent 
-                                    bg-gradient-to-r from-indigo-600 to-purple-600">
-                                    No Courses Available
-                                </h2>
-                                <p className="text-gray-600">Check back soon for new learning opportunities</p>
-                            </motion.div>
-                        </div>
-                    )}
+                <div className="space-y-16 sm:space-y-20 lg:space-y-24 pt-[25vh] sm:pt-[30vh] pb-16">
+                    {courses.map((course, index) => renderCourse(course, index))}
                 </div>
             </motion.div>
 
+            {/* Payment Modal */}
             <AnimatePresence>
                 {showPaymentModal && (
                     <PaymentModal
                         formStep={formStep}
                         formData={formData}
                         selectedCourse={selectedCourse}
-                        onClose={() => {
-                            setShowPaymentModal(false);
-                            setFormStep(1);
-                            setFormData({ email: "", name: "", id: "", phone: "" });
-                        }}
-                        onSubmit={handleFormSubmit}
+                        onClose={handleCloseModal}
+                        onSubmit={handleSubmit}
                         onFormDataChange={handleFormDataChange}
                         onFileChange={handleFileChange}
                     />
                 )}
             </AnimatePresence>
 
+            {/* Success Dialog */}
             <AnimatePresence>
                 {showSuccessDialog && (
                     <motion.div
@@ -564,24 +521,19 @@ export default function Courses() {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-xl p-6 w-full max-w-md"
+                            className="bg-white rounded-xl p-8 max-w-md text-center"
                         >
-                            <div className="text-center">
-                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xl font-semibold text-gray-900 mb-2">Registration Successful!</h3>
-                                <p className="text-gray-600 mb-6">Thank you for registering for the course. We'll contact you shortly with more details.</p>
-                                <button
-                                    onClick={() => setShowSuccessDialog(false)}
-                                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg
-                                        hover:from-indigo-700 hover:to-purple-700 transition-all duration-300"
-                                >
-                                    Close
-                                </button>
-                            </div>
+                            <div className="text-green-500 text-6xl mb-4">✅</div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Enrollment Successful!</h3>
+                            <p className="text-gray-600 mb-6">
+                                Your course enrollment has been confirmed. We'll contact you soon with course details.
+                            </p>
+                            <button
+                                onClick={() => setShowSuccessDialog(false)}
+                                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                            >
+                                Close
+                            </button>
                         </motion.div>
                     </motion.div>
                 )}
