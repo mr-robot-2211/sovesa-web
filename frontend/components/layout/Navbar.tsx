@@ -39,6 +39,7 @@ const Navbar = ()=>{
   }, []);
 
   const menuItems = [
+    { name: "Home", path: "/home" },
     { name: "Announcements", path: "/" },
     { name: "Soul Walks", path: "/trips" },
     { name: "DivyaVidya", path: "/courses" },
