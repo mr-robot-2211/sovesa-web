@@ -1,8 +1,7 @@
-"use client"
+"use client";
 import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 
 interface PaymentFormData {
     email: string;
@@ -28,7 +27,7 @@ interface FormData {
 const PaymentModal = ({
     formStep,
     formData,
-    selectedCourse,
+    selectedTrip,
     onClose,
     onSubmit,
     onFormDataChange,
@@ -36,7 +35,7 @@ const PaymentModal = ({
 }: {
     formStep: number;
     formData: PaymentFormData;
-    selectedCourse: any;
+    selectedTrip: any;
     onClose: () => void;
     onSubmit: (e: React.FormEvent) => void;
     onFormDataChange: (field: keyof PaymentFormData, value: string) => void;
@@ -117,7 +116,7 @@ const PaymentModal = ({
                     <div className="space-y-4">
                         <div className="bg-gray-50 p-4 rounded-lg">
                             <h4 className="text-lg font-medium text-gray-900 mb-2">Payment Instructions</h4>
-                            <p className="text-gray-600 mb-4">Please scan the QR code below and make the payment of {selectedCourse?.fields["price"] || "specified amount"}</p>
+                            <p className="text-gray-600 mb-4">Please scan the QR code below and make the payment of {selectedTrip?.fields["price"] || "specified amount"}</p>
                             <div className="bg-white p-4 rounded-lg mb-4 flex justify-center">
                                 <Image
                                     src="/qr-code.png"
@@ -152,14 +151,15 @@ const PaymentModal = ({
     </motion.div>
 );
 
-export default function DivyaVidya() {
-    const [courses, setCourses] = useState<any[]>([]);
-    const [error, setError] = useState("");
+export default function SoulWalks() {
+    // All hooks must be called before any conditional returns
+    const [trips, setTrips] = useState<any[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [expandedCard, setExpandedCard] = useState<string | null>(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [formStep, setFormStep] = useState(1);
-    const [selectedCourse, setSelectedCourse] = useState<any>(null);
+    const [selectedTrip, setSelectedTrip] = useState<any>(null);
     const [formData, setFormData] = useState<FormData>({
         email: "",
         name: "",
@@ -172,19 +172,20 @@ export default function DivyaVidya() {
         success: false
     });
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [paymentFile, setPaymentFile] = useState<File | null>(null);
     
+    // Refs and scroll hooks
     const containerRef = useRef<HTMLDivElement>(null);
     const { scrollY } = useScroll();
     
+    // Transform values for animations
     const headerOpacity = useTransform(
         scrollY,
         [0, 200],
         [1, 0]
     );
-    const headerY = useTransform(scrollY, [0, 0.1], [0, -50]);
 
     useEffect(() => {
-        console.log("Fetching courses...");
         fetch("http://localhost:8000/api/courses/")
             .then((res) => {
                 if (!res.ok) {
@@ -193,23 +194,21 @@ export default function DivyaVidya() {
                 return res.json();
             })
             .then((data) => {
-                console.log("Courses API response:", data);
-                setCourses(data.records || []);
+                setTrips(data.records || []);
                 setLoading(false);
             })
             .catch((err) => {
-                console.error("Error fetching courses:", err);
                 setError(err.message);
                 setLoading(false);
             });
     }, []);
 
-    const handleCardExpand = (courseId: string) => {
-        setExpandedCard(expandedCard === courseId ? null : courseId);
+    const handleCardExpand = (tripId: string) => {
+        setExpandedCard(expandedCard === tripId ? null : tripId);
     };
 
-    const handleJoinNow = (course: any) => {
-        setSelectedCourse(course);
+    const handleJoinNow = (trip: any) => {
+        setSelectedTrip(trip);
         setShowPaymentModal(true);
         setFormStep(1);
         setFormData({
@@ -225,22 +224,43 @@ export default function DivyaVidya() {
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Handle file upload logic here
+        if (e.target.files && e.target.files[0]) {
+            setPaymentFile(e.target.files[0]);
+        }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formStep === 1) {
             setFormStep(2);
         } else {
-            // Handle final submission
             setSubmissionStatus({ loading: true, error: null, success: false });
-            // Simulate API call
-            setTimeout(() => {
+            try {
+                const payload = {
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    student_id: formData.id,
+                    tripId: selectedTrip && selectedTrip.fields && selectedTrip.fields["trip-title"] ? selectedTrip.fields["trip-title"] : undefined
+                };
+                console.log("Submitting payload:", payload);
+                const response = await fetch('http://localhost:8000/api/courses-registration/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Submission failed');
+                }
                 setSubmissionStatus({ loading: false, error: null, success: true });
                 setShowSuccessDialog(true);
                 setShowPaymentModal(false);
-            }, 2000);
+            } catch (err: any) {
+                setSubmissionStatus({ loading: false, error: err.message, success: false });
+            }
         }
     };
 
@@ -255,12 +275,14 @@ export default function DivyaVidya() {
         });
     };
 
+    // Render functions
     const renderLoading = () => (
         <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6f2] relative overflow-hidden">
+            {/* Background Image */}
             <div className="absolute inset-0 opacity-5">
                 <Image
-                    src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8"
-                    alt="Education background"
+                    src="https://images.unsplash.com/photo-1488646953014-85cb44e25828"
+                    alt="Courses background"
                     layout="fill"
                     objectFit="cover"
                     priority
@@ -274,6 +296,7 @@ export default function DivyaVidya() {
                 transition={{ duration: 0.8 }}
             >
                 <div className="relative">
+                    {/* Outer rotating circle */}
                     <motion.div
                         className="w-16 h-16 rounded-full border-2 border-gray-200 border-t-green-600"
                         animate={{ rotate: 360 }}
@@ -284,6 +307,7 @@ export default function DivyaVidya() {
                         }}
                     />
                     
+                    {/* Inner pulsing dot */}
                     <motion.div
                         className="absolute top-1/2 left-1/2 w-2 h-2 bg-green-600 rounded-full -translate-x-1/2 -translate-y-1/2"
                         animate={{
@@ -300,7 +324,7 @@ export default function DivyaVidya() {
                 
                 <div className="flex flex-col items-center gap-1">
                     <span className="text-green-700 text-sm font-light tracking-[0.2em]">PREPARING</span>
-                    <span className="text-gray-500 text-xs font-light tracking-wider">YOUR DIVINE KNOWLEDGE</span>
+                    <span className="text-gray-500 text-xs font-light tracking-wider">YOUR COURSES</span>
                 </div>
             </motion.div>
         </div>
@@ -320,95 +344,65 @@ export default function DivyaVidya() {
         </div>
     );
 
-    const renderCourse = (course: any, index: number) => {
-        const isExpanded = expandedCard === course.id;
-        
-        return (
-            <motion.div
-                key={course.id}
-                className={`relative h-auto sm:h-[60vh] w-full sm:w-[75vw] group bg-white rounded-xl shadow-lg 
-                    flex flex-col sm:flex-row overflow-hidden mx-auto
-                    ${index % 2 === 0 ? 'sm:mr-auto' : 'sm:ml-auto'}`}
-                initial={{ x: index % 2 === 0 ? -100 : 100, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
-                viewport={{ once: true, margin: "-10%" }}
-                transition={{ duration: 0.8, delay: index * 0.1 }}
+    const renderTrip = (trip: any, index: number) => (
+        <motion.div
+            key={trip.id}
+            className={`relative w-full max-w-[1200px] mx-auto bg-white rounded-xl shadow-lg 
+                flex flex-col lg:flex-row overflow-hidden
+                ${index % 2 === 0 ? 'lg:mr-auto' : 'lg:ml-auto'}`}
+            initial={{ x: index % 2 === 0 ? -100 : 100, opacity: 0 }}
+            whileInView={{ x: 0, opacity: 1 }}
+            viewport={{ once: true, margin: "-10%" }}
+            transition={{ duration: 0.8, delay: index * 0.1 }}
+        >
+            <div className={`relative w-full lg:w-1/2 aspect-video lg:aspect-auto min-h-[300px] ${index % 2 === 0 ? 'lg:order-first' : 'lg:order-last'}`}>
+                <Image
+                    src={trip.fields["image-url"] || "https://images.unsplash.com/photo-1469474968028-56623f02e42e"}
+                    alt={trip.fields["trip-title"]}
+                    layout="fill"
+                    objectFit="cover"
+                    className="transition-transform duration-1000 group-hover:scale-105"
+                    priority={index < 2}
+                />
+            </div>
+
+            <motion.div 
+                className={`w-full lg:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-center 
+                    ${index % 2 === 0 ? 'lg:pl-12' : 'lg:pr-12'}`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 }}
             >
-                <div className={`relative w-full sm:w-1/2 aspect-video sm:aspect-auto ${index % 2 === 0 ? 'sm:order-first' : 'sm:order-last'}`}>
-                    <Image
-                        src={course.fields["image-url"] || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3"}
-                        alt={`Course visual for ${course.fields["course-title"]}`}
-                        layout="fill"
-                        objectFit="cover"
-                        className="transition-transform duration-1000 group-hover:scale-105"
-                        priority={index < 2}
-                    />
+                <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r from-green-50 to-emerald-50 
+                    text-green-600 text-sm mb-6 w-fit font-medium`}>
+                    {trip.fields["Date"]}
                 </div>
-
-                <motion.div 
-                    className={`w-full sm:w-1/2 p-8 sm:p-10 flex flex-col justify-center 
-                        ${index % 2 === 0 ? 'sm:pl-12' : 'sm:pr-12'}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 bg-clip-text text-transparent 
+                    bg-gradient-to-r from-green-600 to-emerald-600">
+                    {trip.fields["trip-title"]}
+                </h2>
+                <p className="text-base sm:text-lg lg:text-xl text-gray-700 mb-4">
+                    {trip.fields["trip-sub-title"]}
+                </p>
+                <p className={`text-gray-600 mb-8 ${expandedCard === trip.id ? '' : 'line-clamp-3'}`}>
+                    {trip.fields["trip-description"]}
+                </p>
+                
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => expandedCard === trip.id ? handleJoinNow(trip) : handleCardExpand(trip.id)}
+                    className="px-6 sm:px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-full 
+                        hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit"
                 >
-                    <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r from-green-50 to-emerald-50 
-                        text-green-600 text-sm mb-6 w-fit font-medium`}>
-                        {course.fields["duration"] || "8 weeks"}
-                    </div>
-                    
-                    <h2 className="text-2xl sm:text-3xl font-bold mb-4 bg-clip-text text-transparent 
-                        bg-gradient-to-r from-green-600 to-emerald-600">
-                        {course.fields["course-title"]}
-                    </h2>
-                    
-                    <p className="text-lg sm:text-xl text-gray-700 mb-4">
-                        {course.fields["course-subtitle"]}
-                    </p>
-                    
-                    <motion.div
-                        initial={false}
-                        animate={{ height: isExpanded ? "auto" : "0px" }}
-                        className="overflow-hidden"
-                    >
-                        <p className="text-gray-600 mb-8 line-clamp-3">
-                            {course.fields["course-description"]}
-                        </p>
-                    </motion.div>
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <span className="text-gray-600">
-                            {course.fields["enrolled-count"] || "1,234"} enrolled
-                        </span>
-                        
-                        <div className="flex gap-4 w-full sm:w-auto">
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleCardExpand(course.id)}
-                                className="px-6 sm:px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-full 
-                                    hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg flex-1 sm:flex-none"
-                            >
-                                {isExpanded ? "Show Less" : "Learn More"}
-                            </motion.button>
-
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleJoinNow(course)}
-                                className="px-6 sm:px-8 py-3 bg-white text-green-600 font-medium rounded-full border-2 border-green-600
-                                    hover:bg-green-50 transition-all duration-300 shadow-md hover:shadow-lg flex-1 sm:flex-none"
-                            >
-                                Join Now
-                            </motion.button>
-                        </div>
-                    </div>
-                </motion.div>
+                    {expandedCard === trip.id ? "Join Now!" : "View More"}
+                </motion.button>
             </motion.div>
-        );
-    };
+        </motion.div>
+    );
 
+    // Main render
     if (loading) return renderLoading();
     if (error) return renderError();
 
@@ -416,51 +410,51 @@ export default function DivyaVidya() {
         <div className="bg-[#f7f6f2] min-h-screen overflow-x-hidden relative">
             {/* Background decorative elements */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none select-none">
-                {/* Child Reading Pattern */}
-                <div className="absolute top-[15vh] left-[5vw] w-32 h-40 opacity-60 brightness-200">
+                {/* Gaur Nitai Pattern */}
+                <div className="absolute top-[15vh] left-[5vw] w-32 h-40 opacity-30">
                     <Image
-                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
-                        alt="Child Reading"
+                        src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
+                        alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
                     />
                 </div>
-                <div className="absolute top-[45vh] right-[10vw] w-40 h-48 opacity-60 brightness-200">
+                <div className="absolute top-[45vh] right-[10vw] w-40 h-48 opacity-30">
                     <Image
-                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
-                        alt="Child Reading"
+                        src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
+                        alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
                     />
                 </div>
-                <div className="absolute top-[75vh] left-[15vw] w-36 h-44 opacity-60 brightness-200">
+                <div className="absolute top-[75vh] left-[15vw] w-36 h-44 opacity-30">
                     <Image
-                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
-                        alt="Child Reading"
+                        src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
+                        alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
                     />
                 </div>
-                <div className="absolute top-[30vh] left-[20vw] w-28 h-36 opacity-60 brightness-200">
+                <div className="absolute top-[30vh] left-[20vw] w-28 h-36 opacity-30">
                     <Image
-                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
-                        alt="Child Reading"
+                        src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
+                        alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
                     />
                 </div>
-                <div className="absolute top-[60vh] right-[15vw] w-44 h-52 opacity-60 brightness-200">
+                <div className="absolute top-[60vh] right-[15vw] w-44 h-52 opacity-30">
                     <Image
-                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
-                        alt="Child Reading"
+                        src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
+                        alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
                     />
                 </div>
-                <div className="absolute top-[90vh] right-[25vw] w-36 h-44 opacity-60 brightness-200">
+                <div className="absolute top-[90vh] right-[25vw] w-36 h-44 opacity-30">
                     <Image
-                        src="https://thumbs.dreamstime.com/b/child-reading-under-tree-illustration-332188223.jpg"
-                        alt="Child Reading"
+                        src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
+                        alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
                     />
@@ -480,16 +474,16 @@ export default function DivyaVidya() {
                     <div className="text-center">
                         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-clip-text text-transparent 
                             bg-gradient-to-r from-green-600 to-emerald-600 mb-2">
-                            DivyaVidya
+                            Courses
                         </h1>
                         <p className="text-gray-600 text-lg sm:text-xl">
-                            Sacred knowledge for spiritual growth and enlightenment
+                            Explore and enroll in our transformative courses
                         </p>
                     </div>
                 </motion.div>
 
                 <div className="space-y-16 sm:space-y-20 lg:space-y-24 pt-[25vh] sm:pt-[30vh] pb-16">
-                    {courses.map((course, index) => renderCourse(course, index))}
+                    {trips.map((trip, index) => renderTrip(trip, index))}
                 </div>
             </motion.div>
 
@@ -499,7 +493,7 @@ export default function DivyaVidya() {
                     <PaymentModal
                         formStep={formStep}
                         formData={formData}
-                        selectedCourse={selectedCourse}
+                        selectedTrip={selectedTrip}
                         onClose={handleCloseModal}
                         onSubmit={handleSubmit}
                         onFormDataChange={handleFormDataChange}
@@ -524,9 +518,9 @@ export default function DivyaVidya() {
                             className="bg-white rounded-xl p-8 max-w-md text-center"
                         >
                             <div className="text-green-500 text-6xl mb-4">✅</div>
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Enrollment Successful!</h3>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Booking Successful!</h3>
                             <p className="text-gray-600 mb-6">
-                                Your course enrollment has been confirmed. We'll contact you soon with course details.
+                                Your soul walk booking has been confirmed. We'll contact you soon with further details.
                             </p>
                             <button
                                 onClick={() => setShowSuccessDialog(false)}

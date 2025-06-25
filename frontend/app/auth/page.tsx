@@ -208,6 +208,33 @@ export default function Auth() {
               />
             </div>
 
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            <div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => signIn("google", { callbackUrl: "/" })}
+                disabled={isLoading}
+                className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 48 48">
+                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.802 6.538C34.631 2.766 29.697 0.5 24 0.5C11.411 0.5 1.5 10.411 1.5 23s9.911 22.5 22.5 22.5c12.088 0 21.408-8.522 22.452-19.917c.004-.323.011-.646.011-.969c0-.422-.016-1.153-.059-1.531z"/>
+                  <path fill="#FF3D00" d="M6.306 14.691c-1.956 3.859-1.956 8.411 0 12.27l-4.85-3.759C.053 20.627-.249 17.5 1.456 10.932l4.85 3.759z"/>
+                  <path fill="#4CAF50" d="M24 48c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238c-2.008 1.32-4.402 2.108-7.219 2.108c-5.22 0-9.658-3.344-11.303-7.952l-6.305 4.878C7.054 42.158 14.938 48 24 48z"/>
+                  <path fill="#1976D2" d="M43.611 20.083H24v8h11.303c-0.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238c3.693-3.413 6.13-8.23 6.19-14.283c.004-.323.011-.646.011-.969c0-.422-.016-1.153-.059-1.531z"/>
+                </svg>
+                Sign in with Google
+              </motion.button>
+            </div>
+
             {message && (
               <motion.p
                 initial={{ opacity: 0 }}

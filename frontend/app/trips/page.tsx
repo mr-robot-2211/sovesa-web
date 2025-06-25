@@ -172,6 +172,7 @@ export default function SoulWalks() {
         success: false
     });
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [paymentFile, setPaymentFile] = useState<File | null>(null);
     
     // Refs and scroll hooks
     const containerRef = useRef<HTMLDivElement>(null);
@@ -223,22 +224,42 @@ export default function SoulWalks() {
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Handle file upload logic here
+        if (e.target.files && e.target.files[0]) {
+            setPaymentFile(e.target.files[0]);
+        }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formStep === 1) {
             setFormStep(2);
         } else {
-            // Handle final submission
             setSubmissionStatus({ loading: true, error: null, success: false });
-            // Simulate API call
-            setTimeout(() => {
+            try {
+                const payload = {
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    student_id: formData.id,
+                    tripId: selectedTrip && selectedTrip.fields && selectedTrip.fields["trip-title"] ? selectedTrip.fields["trip-title"] : undefined
+                };
+                const response = await fetch('http://localhost:8000/api/trips-registration/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Submission failed');
+                }
                 setSubmissionStatus({ loading: false, error: null, success: true });
                 setShowSuccessDialog(true);
                 setShowPaymentModal(false);
-            }, 2000);
+            } catch (err: any) {
+                setSubmissionStatus({ loading: false, error: err.message, success: false });
+            }
         }
     };
 
