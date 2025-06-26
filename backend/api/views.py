@@ -4,7 +4,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
-from .models import Blog
+from .models import Blog, Course, Trip
+from django.shortcuts import render
+from .serializers import CourseSerializer, TripSerializer, BlogSerializer
+from rest_framework import viewsets
+from rest_framework.decorators import api_view
 
 # Replace with your actual Teable API Key and Table ID
 TEABLE_API_KEY = "teable_accX1rfXi2JYIQ1BUTu_N89wltHtHeoRWzZZrnNnXAmAic4MXWaxunPNCEZn65s="
@@ -109,3 +113,6 @@ class TripRegistrationView(APIView):
 
         except requests.exceptions.RequestException as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CourseViewSet(viewsets.ModelViewSet):
+    queryset = Course.objects.all()

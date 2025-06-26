@@ -1,9 +1,12 @@
-from django.urls import path
-from .views import CourseListView, TripListView , TripRegistrationView, BlogListView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import CourseViewSet, TripViewSet, BlogViewSet
+
+router = DefaultRouter()
+router.register(r'courses', CourseViewSet)
+router.register(r'trips', TripViewSet)
+router.register(r'blogs', BlogViewSet)
 
 urlpatterns = [
-    path("courses/", CourseListView.as_view(), name="courses"),  
-    path("trips/", TripListView.as_view(), name="trips"),  # ✅ Use `.as_view()`
-    path("trips-registration/", TripRegistrationView.as_view(), name="trips-registration"),
-    path("blog/", BlogListView.as_view(), name="blog"),
+    path('', include(router.urls)),
 ]

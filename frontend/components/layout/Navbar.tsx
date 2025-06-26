@@ -47,27 +47,32 @@ const Navbar = ()=>{
   ];
 
   const renderMenuItems = (mobile: boolean = false) => (
-    <>
-      {menuItems.map((item) => (
-        <Link href={item.path} key={item.path}>
-          <motion.span
-            className={`relative px-4 py-2 text-${mobile ? 'lg' : 'sm'} cursor-pointer
-              ${pathname === item.path ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'}`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {item.name}
-            {pathname === item.path && (
-              <motion.div
-                layoutId="underline"
-                className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
-                initial={false}
-              />
-            )}
-          </motion.span>
-        </Link>
-      ))}
-    </>
+    <div className={`relative flex ${mobile ? 'flex-col items-center' : 'flex-row items-center'} gap-2 md:gap-4`}>
+      {menuItems.map((item) => {
+        const isActive = pathname === item.path;
+        const isGradient = item.name === "Soul Walks" || item.name === "DivyaVidya";
+        return (
+          <Link href={item.path} key={item.path} className="relative">
+            <motion.span
+              className={`relative flex flex-col items-center px-2 sm:px-4 py-2 text-${mobile ? 'lg' : 'sm'} cursor-pointer whitespace-nowrap
+                ${isActive ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'} ${isGradient ? 'bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent' : ''}`}
+              whileHover={{ scale: 1.08, opacity: 0.85 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            >
+              <span className="whitespace-nowrap">{item.name}</span>
+              {isActive && !mobile && (
+                <motion.div
+                  layoutId="nav-underline"
+                  className="absolute left-0 right-0 -bottom-1 h-0.5 rounded bg-green-600"
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+            </motion.span>
+          </Link>
+        );
+      })}
+    </div>
   );
 
   return (
@@ -80,63 +85,84 @@ const Navbar = ()=>{
           transition={{ type: "spring", stiffness: 100, damping: 20 }}
         >
           <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16 sm:h-20">
-              {/* Logo */}
-              <motion.div
-                className="flex-shrink-0"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            <div className="relative flex justify-between items-center h-16 sm:h-20">
+              {/* Hamburger (left, mobile only) */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 md:static md:translate-y-0">
+                <motion.button
+                  className="md:hidden p-2"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <div className="w-6 h-5 flex flex-col justify-between">
+                    <motion.div
+                      animate={isMobileMenuOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
+                      className="w-full h-0.5 bg-gray-600 origin-left"
+                    />
+                    <motion.div
+                      animate={isMobileMenuOpen ? { opacity: 0 } : { opacity: 1 }}
+                      className="w-full h-0.5 bg-gray-600"
+                    />
+                    <motion.div
+                      animate={isMobileMenuOpen ? { rotate: -45, y: -8 } : { rotate: 0, y: 0 }}
+                      className="w-full h-0.5 bg-gray-600 origin-left"
+                    />
+                  </div>
+                </motion.button>
+              </div>
+
+              {/* Logo (center on mobile, left on desktop) */}
+              <div
+                className="flex-shrink-0 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:static md:translate-x-0 md:translate-y-0 flex items-center justify-center"
               >
-                <Link href="/">
-                  <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent 
-                    bg-gradient-to-r from-green-600 to-emerald-600">
+                <Link href="/home">
+                  <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-600">
                     Sovesa
                   </span>
                 </Link>
-              </motion.div>
+              </div>
 
-              {/* Desktop Menu */}
-              <div className="hidden sm:flex items-center space-x-4">
+              {/* Desktop Menu (centered between logo and login) */}
+              <div className="hidden md:flex items-center space-x-4 mx-auto">
                 {renderMenuItems()}
-
                 {/* For condition dashboard button */}
-                {isLoggedIn && isSadhaka &&
-                  (<Link href="/dashboard">
-                  <motion.span
-                    className={`relative px-4 py-2 text-${false ? 'lg' : 'sm'} cursor-pointer
-                      ${pathname === "/dashboard" ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'}`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    BhaktiMeter
-                    {pathname === "/dashboard" && (
-                      <motion.div
-                        layoutId="underline"
-                        className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
-                        initial={false}
-                      />
-                    )}
-                  </motion.span>
-                </Link>
-                  )
-                }
-
-                {!isLoggedIn && 
-                  (<Link href="/auth">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="ml-4 px-6 py-2 bg-green-600 text-white rounded-full font-medium
-                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                  >
-                    Login
-                  </motion.button>
+                {isLoggedIn && isSadhaka && (
+                  <Link href="/dashboard">
+                    <motion.span
+                      className={`relative px-4 py-2 text-${false ? 'lg' : 'sm'} cursor-pointer
+                        ${pathname === "/dashboard" ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'}`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      BhaktiMeter
+                      {pathname === "/dashboard" && (
+                        <motion.div
+                          layoutId="underline"
+                          className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
+                          initial={false}
+                        />
+                      )}
+                    </motion.span>
                   </Link>
-                  )
-                }
-                {isLoggedIn && 
-                  (<motion.button
-                    onClick={()=>signOut({ callbackUrl: "/" })}
+                )}
+              </div>
+
+              {/* Login/Logout always visible, right on mobile/desktop */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center md:static md:translate-y-0">
+                {!isLoggedIn && (
+                  <Link href="/auth">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="ml-4 px-6 py-2 bg-green-600 text-white rounded-full font-medium
+                        hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                    >
+                      Login
+                    </motion.button>
+                  </Link>
+                )}
+                {isLoggedIn && (
+                  <motion.button
+                    onClick={() => signOut({ callbackUrl: "/" })}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="ml-4 px-6 py-2 bg-green-600 text-white rounded-full font-medium
@@ -144,31 +170,8 @@ const Navbar = ()=>{
                   >
                     Logout
                   </motion.button>
-                  )
-                }
+                )}
               </div>
-
-              {/* Mobile Menu Button */}
-              <motion.button
-                className="sm:hidden p-2"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                whileTap={{ scale: 0.9 }}
-              >
-                <div className="w-6 h-5 flex flex-col justify-between">
-                  <motion.div
-                    animate={isMobileMenuOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
-                    className="w-full h-0.5 bg-gray-600 origin-left"
-                  />
-                  <motion.div
-                    animate={isMobileMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-                    className="w-full h-0.5 bg-gray-600"
-                  />
-                  <motion.div
-                    animate={isMobileMenuOpen ? { rotate: -45, y: -8 } : { rotate: 0, y: 0 }}
-                    className="w-full h-0.5 bg-gray-600 origin-left"
-                  />
-                </div>
-              </motion.button>
             </div>
           </nav>
 
@@ -179,7 +182,7 @@ const Navbar = ()=>{
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="sm:hidden bg-white border-t"
+                className="md:hidden bg-white border-t"
               >
                 <div className="px-4 py-6 space-y-4 flex flex-col items-center">
                   {renderMenuItems(true)}
@@ -205,30 +208,6 @@ const Navbar = ()=>{
                   </Link>
                   )
                 }
-
-                {!isLoggedIn && (
-                  <Link href="/auth">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full px-6 py-3 bg-green-600 text-white rounded-full font-medium
-                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                  >
-                    Login
-                  </motion.button>
-                  </Link>
-                )}
-                {isLoggedIn && (
-                  <motion.button
-                    onClick={()=>signOut({ callbackUrl: "/" })}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full px-6 py-3 bg-green-600 text-white rounded-full font-medium
-                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                  >
-                    Logout
-                  </motion.button>
-                )}
                 </div>
               </motion.div>
             )}

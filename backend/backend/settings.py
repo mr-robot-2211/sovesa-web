@@ -129,7 +129,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Next.js frontend
+    "http://localhost:3000",
 ]
 
 REST_FRAMEWORK = {
@@ -137,3 +137,17 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
+# Email settings (for volunteer signup)
+# For development, emails will be printed to the console where the Django server is running.
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# For production, you would comment out the line above and use these settings:
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # e.g., for Gmail
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "sgn.up.nw@gmail.com"  # The email you want to send from
+EMAIL_HOST_PASSWORD = "signup@123"# The app password for that email
+DEFAULT_FROM_EMAIL = "sgn.up.nw@gmail.com" # The "from" email address
+ADMIN_EMAIL = "ayush42agrawal@gmail.com" # The admin's email to receive notifications
+

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface BlogPost {
   id: number;
@@ -15,12 +16,17 @@ interface BlogPost {
   image_url?: string;
 }
 
-export default function Announcements() {
+export default function Page() {
+  const router = useRouter();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    router.replace("/home");
+  }, [router]);
 
   useEffect(() => {
     fetchBlogPosts();

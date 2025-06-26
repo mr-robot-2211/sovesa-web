@@ -9,7 +9,9 @@ const nextConfig = {
             'img.freepik.com',         // For freepik images
             'static.vecteezy.com',      // For vecteezy images
             'static.wixstatic.com',      // For wixstatic images
-            'thumbs.dreamstime.com'      // For dreamstime images
+            'thumbs.dreamstime.com',      // For dreamstime images
+            'drive.google.com',           // For Google Drive images
+            'source.unsplash.com'         // For random unsplash images
         ],
     },
 }
