@@ -1,26 +1,45 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { useSession, signIn } from "next-auth/react";
+import { apiService } from "@/lib/api";
+
+interface UserFields {
+  studentId?: string;
+  phone?: string;
+}
+
+interface UserRecord {
+  fields?: UserFields;
+}
 
 interface PaymentFormData {
     email: string;
     name: string;
-    id: string;
+  id: string;
     phone: string;
-}
-
-interface SubmissionStatus {
-    loading: boolean;
-    error: string | null;
-    success: boolean;
 }
 
 interface FormData {
     email: string;
-    name: string;
+  name: string;
     id: string;
     phone: string;
+}
+
+interface TripFields {
+    "trip-title": string;
+    "trip-sub-title": string;
+    "trip-description": string;
+    "Date": string;
+    "price": string;
+    "image-url": string;
+}
+
+interface Trip {
+    id: string;
+    fields: TripFields;
 }
 
 // Move PaymentModal outside the main component to prevent re-renders
@@ -31,15 +50,21 @@ const PaymentModal = ({
     onClose,
     onSubmit,
     onFormDataChange,
-    onFileChange
+    onFileChange,
+    isSubmitting,
+    submitError,
+    paymentFile
 }: {
     formStep: number;
     formData: PaymentFormData;
-    selectedTrip: any;
+    selectedTrip: Trip | null;
     onClose: () => void;
     onSubmit: (e: React.FormEvent) => void;
     onFormDataChange: (field: keyof PaymentFormData, value: string) => void;
     onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    isSubmitting: boolean;
+    submitError: string | null;
+    paymentFile: File | null;
 }) => (
     <motion.div
         initial={{ opacity: 0 }}
@@ -72,33 +97,14 @@ const PaymentModal = ({
                 {formStep === 1 ? (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input
-                                type="email"
-                                required
-                                value={formData.email}
-                                onChange={(e) => onFormDataChange('email', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.name}
-                                onChange={(e) => onFormDataChange('name', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
                             <input
                                 type="text"
                                 required
                                 value={formData.id}
                                 onChange={(e) => onFormDataChange('id', e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                placeholder="Enter your student ID"
                             />
                         </div>
                         <div>
@@ -109,6 +115,7 @@ const PaymentModal = ({
                                 value={formData.phone}
                                 onChange={(e) => onFormDataChange('phone', e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                placeholder="Enter your phone number"
                             />
                         </div>
                     </>
@@ -136,43 +143,89 @@ const PaymentModal = ({
                                 onChange={onFileChange}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
+                            {paymentFile && (
+                                <p className="mt-2 text-sm text-green-600">
+                                    ✓ Selected: {paymentFile.name}
+                                </p>
+                            )}
                         </div>
+                        {submitError && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-red-800 text-sm">{submitError}</p>
+                            </div>
+                        )}
                     </div>
                 )}
                 <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg
-                        hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                        hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {formStep === 1 ? "Next" : "Submit"}
+                    {isSubmitting ? "Submitting..." : (formStep === 1 ? "Next" : "Submit")}
                 </button>
             </form>
         </motion.div>
     </motion.div>
 );
 
-export default function SoulWalks() {
+// Login Dialog Component
+const LoginDialog = ({ onClose }: { onClose: () => void }) => (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+    >
+        <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-8 max-w-md w-full text-center"
+        >
+            <div className="text-6xl mb-4">🔐</div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Login Required</h3>
+            <p className="text-gray-600 mb-6">
+                Please log in with your Google account to register for this trip.
+            </p>
+            <div className="flex gap-4">
+                <button
+                    onClick={onClose}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={() => signIn("google")}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                >
+                    Login with Google
+                </button>
+            </div>
+        </motion.div>
+    </motion.div>
+);
+
+export default function TripsPage() {
     // All hooks must be called before any conditional returns
-    const [trips, setTrips] = useState<any[]>([]);
+    const [trips, setTrips] = useState<Trip[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [expandedCard, setExpandedCard] = useState<string | null>(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [formStep, setFormStep] = useState(1);
-    const [selectedTrip, setSelectedTrip] = useState<any>(null);
+    const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
     const [formData, setFormData] = useState<FormData>({
         email: "",
         name: "",
         id: "",
         phone: "",
     });
-    const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>({
-        loading: false,
-        error: null,
-        success: false
-    });
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [paymentFile, setPaymentFile] = useState<File | null>(null);
+    const [showLoginDialog, setShowLoginDialog] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     
     // Refs and scroll hooks
     const containerRef = useRef<HTMLDivElement>(null);
@@ -185,38 +238,129 @@ export default function SoulWalks() {
         [1, 0]
     );
 
+    const session = useSession();
+
     useEffect(() => {
-        fetch("http://localhost:8000/api/trips/")
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! Status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then((data) => {
+        const fetchTrips = async () => {
+            const result = await apiService.getTrips();
+            if (result.success && result.data) {
+                const data = result.data as { records: Trip[] };
                 setTrips(data.records || []);
                 setLoading(false);
-            })
-            .catch((err) => {
-                setError(err.message);
+            } else {
+                setError(result.error || 'Failed to fetch trips');
                 setLoading(false);
-            });
+            }
+        };
+
+        fetchTrips();
     }, []);
+
+    // Load user data when session changes
+    useEffect(() => {
+        console.log('Session status:', session.status, 'Session data:', session.data);
+        
+        if (session.status === 'authenticated' && session.data?.user?.email) {
+            console.log('Storing user data for:', session.data.user.email);
+            loadUserData();
+            // Also ensure user is stored in database
+            storeUserData();
+        }
+    }, [session.status, session.data]);
+
+    const loadUserData = async () => {
+        try {
+            const result = await apiService.getUserByEmail(session.data?.user?.email || "");
+            
+            if (result.success && result.data && typeof result.data === 'object' && 'user' in result.data) {
+                const user = (result.data as { user: UserRecord }).user;
+                setFormData(prev => ({
+                    ...prev,
+                    email: session.data?.user?.email || "",
+                    name: session.data?.user?.name || "",
+                    id: user.fields?.studentId || "",
+                    phone: user.fields?.phone || "",
+                }));
+            } else {
+                // Handle error silently in production
+                // Fallback to session data
+                setFormData(prev => ({
+                    ...prev,
+                    email: session.data?.user?.email || "",
+                    name: session.data?.user?.name || "",
+                    id: "",
+                    phone: "",
+                }));
+            }
+        } catch{
+            // Handle error silently in production
+            // Fallback to session data
+            setFormData(prev => ({
+                ...prev,
+                email: session.data?.user?.email || "",
+                name: session.data?.user?.name || "",
+                id: "",
+                phone: "",
+            }));
+        }
+    };
+
+    const storeUserData = async () => {
+        if (!session.data?.user?.email || !session.data?.user?.name) {
+            console.error('Missing user data for storage:', { email: session.data?.user?.email, name: session.data?.user?.name });
+            return;
+        }
+        
+        // Retry logic for user data storage
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                const result = await apiService.storeUser({
+                    name: session.data.user.name,
+                    email: session.data.user.email,
+                    profile_photo: session.data.user.image || '',
+                });
+                
+                if (result.success) {
+                    console.log('User data stored successfully:', result.message);
+                    return; // Success, exit retry loop
+                } else {
+                    console.error('Failed to store user data:', result.error);
+                    retries--;
+                    if (retries > 0) {
+                        console.log(`Retrying... ${retries} attempts left`);
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+                    }
+                }
+            } catch (error) {
+                console.error('Error storing user data:', error);
+                retries--;
+                if (retries > 0) {
+                    console.log(`Retrying... ${retries} attempts left`);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+                }
+            }
+        }
+        
+        if (retries === 0) {
+            console.error('Failed to store user data after all retries');
+        }
+    };
 
     const handleCardExpand = (tripId: string) => {
         setExpandedCard(expandedCard === tripId ? null : tripId);
     };
 
-    const handleJoinNow = (trip: any) => {
+    const handleJoinNow = async (trip: Trip) => {
+        if (!session.data) {
+            setShowLoginDialog(true);
+            return;
+        }
+        
         setSelectedTrip(trip);
         setShowPaymentModal(true);
         setFormStep(1);
-        setFormData({
-            email: "",
-            name: "",
-            id: "",
-            phone: "",
-        });
+        await loadUserData();
     };
 
     const handleFormDataChange = (field: keyof FormData, value: string) => {
@@ -234,31 +378,42 @@ export default function SoulWalks() {
         if (formStep === 1) {
             setFormStep(2);
         } else {
-            setSubmissionStatus({ loading: true, error: null, success: false });
+            setIsSubmitting(true);
+            setSubmitError(null);
             try {
-                const payload = {
-                    name: formData.name,
-                    email: formData.email,
-                    phone: formData.phone,
-                    student_id: formData.id,
-                    tripId: selectedTrip && selectedTrip.fields && selectedTrip.fields["trip-title"] ? selectedTrip.fields["trip-title"] : undefined
-                };
-                const response = await fetch('http://localhost:8000/api/trips-registration/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Submission failed');
+                // Create FormData for file upload
+                const formDataToSend = new FormData();
+                formDataToSend.append('name', formData.name);
+                formDataToSend.append('email', formData.email);
+                formDataToSend.append('phone', formData.phone);
+                formDataToSend.append('student_id', formData.id);
+                formDataToSend.append('trips', selectedTrip?.fields["trip-title"] || "");
+                
+                // Add payment file if selected
+                if (paymentFile) {
+                    formDataToSend.append('paymentFile', paymentFile);
                 }
-                setSubmissionStatus({ loading: false, error: null, success: true });
-                setShowSuccessDialog(true);
-                setShowPaymentModal(false);
-            } catch (err: any) {
-                setSubmissionStatus({ loading: false, error: err.message, success: false });
+
+                // Send registration with file upload
+                const response = await fetch('/api/trips-registration', {
+                    method: 'POST',
+                    body: formDataToSend,
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.message) {
+                    setShowSuccessDialog(true);
+                    setShowPaymentModal(false);
+                    setPaymentFile(null);
+                } else {
+                    setSubmitError(result.error || 'Submission failed');
+                }
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+                setSubmitError(errorMessage);
+            } finally {
+                setIsSubmitting(false);
             }
         }
     };
@@ -270,7 +425,7 @@ export default function SoulWalks() {
             email: "",
             name: "",
             id: "",
-            phone: "",
+          phone: "",
         });
     };
 
@@ -324,9 +479,9 @@ export default function SoulWalks() {
                 <div className="flex flex-col items-center gap-1">
                     <span className="text-green-700 text-sm font-light tracking-[0.2em]">PREPARING</span>
                     <span className="text-gray-500 text-xs font-light tracking-wider">YOUR SOUL WALK</span>
-                </div>
-            </motion.div>
         </div>
+            </motion.div>
+      </div>
     );
 
     const renderError = () => (
@@ -343,7 +498,7 @@ export default function SoulWalks() {
         </div>
     );
 
-    const renderTrip = (trip: any, index: number) => (
+    const renderTrip = (trip: Trip, index: number) => (
         <motion.div
             key={trip.id}
             className={`relative w-full max-w-[1200px] mx-auto bg-white rounded-xl shadow-lg 
@@ -363,7 +518,7 @@ export default function SoulWalks() {
                     className="transition-transform duration-1000 group-hover:scale-105"
                     priority={index < 2}
                 />
-            </div>
+      </div>
 
             <motion.div 
                 className={`w-full lg:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-center 
@@ -389,11 +544,16 @@ export default function SoulWalks() {
                 </p>
                 
                 <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => expandedCard === trip.id ? handleJoinNow(trip) : handleCardExpand(trip.id)}
-                    className="px-6 sm:px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-full 
-                        hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit"
+                    whileHover={{ scale: expandedCard === trip.id ? 1.05 : 1 }}
+                    whileTap={{ scale: expandedCard === trip.id ? 0.95 : 1 }}
+                    onClick={() => {
+                        if (expandedCard === trip.id) {
+                            handleJoinNow(trip);
+                        } else {
+                            handleCardExpand(trip.id);
+                        }
+                    }}
+                    className="px-6 sm:px-8 py-3 font-medium rounded-full transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"
                 >
                     {expandedCard === trip.id ? "Join Now!" : "View More"}
                 </motion.button>
@@ -432,32 +592,32 @@ export default function SoulWalks() {
                         alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
-                    />
-                </div>
+                />
+              </div>
                 <div className="absolute top-[30vh] left-[20vw] w-28 h-36 opacity-30">
                     <Image
                         src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
                         alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
-                    />
-                </div>
+                />
+              </div>
                 <div className="absolute top-[60vh] right-[15vw] w-44 h-52 opacity-30">
                     <Image
                         src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
                         alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
-                    />
-                </div>
+                />
+              </div>
                 <div className="absolute top-[90vh] right-[25vw] w-36 h-44 opacity-30">
                     <Image
                         src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
                         alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
-                    />
-                </div>
+                />
+              </div>
             </div>
             <motion.div 
                 ref={containerRef}
@@ -486,6 +646,13 @@ export default function SoulWalks() {
                 </div>
             </motion.div>
 
+            {/* Login Dialog */}
+            <AnimatePresence>
+                {showLoginDialog && (
+                    <LoginDialog onClose={() => setShowLoginDialog(false)} />
+                )}
+            </AnimatePresence>
+
             {/* Payment Modal */}
             <AnimatePresence>
                 {showPaymentModal && (
@@ -497,6 +664,9 @@ export default function SoulWalks() {
                         onSubmit={handleSubmit}
                         onFormDataChange={handleFormDataChange}
                         onFileChange={handleFileChange}
+                        isSubmitting={isSubmitting}
+                        submitError={submitError}
+                        paymentFile={paymentFile}
                     />
                 )}
             </AnimatePresence>
@@ -509,7 +679,7 @@ export default function SoulWalks() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-                    >
+                >
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -519,18 +689,18 @@ export default function SoulWalks() {
                             <div className="text-green-500 text-6xl mb-4">✅</div>
                             <h3 className="text-2xl font-bold text-gray-900 mb-2">Booking Successful!</h3>
                             <p className="text-gray-600 mb-6">
-                                Your soul walk booking has been confirmed. We'll contact you soon with further details.
+                                Your soul walk booking has been confirmed. We&apos;ll contact you soon with further details.
                             </p>
-                            <button
+                <button
                                 onClick={() => setShowSuccessDialog(false)}
                                 className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                            >
+                >
                                 Close
-                            </button>
+                </button>
                         </motion.div>
                     </motion.div>
-                )}
+      )}
             </AnimatePresence>
-        </div>
-    );
+    </div>
+  );
 }

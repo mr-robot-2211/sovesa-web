@@ -1,340 +1,192 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
-interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  excerpt: string;
-  author: string;
-  published_date: string;
-  slug: string;
-  image_url?: string;
-}
+export default function Home() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
 
-export default function Announcements() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
 
-  useEffect(() => {
-    fetchBlogPosts();
-  }, []);
-
-  const fetchBlogPosts = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/blog/');
-      if (!response.ok) {
-        throw new Error('Failed to fetch blog posts');
-      }
-      const data = await response.json();
-      setPosts(data.records || []);
-      setLoading(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch posts');
-      setLoading(false);
+  const features = [
+    {
+      title: "Curated Trips",
+      description: "Discover handpicked destinations and expertly crafted itineraries.",
+      icon: "🌍",
+      link: "/trips"
+    },
+    {
+      title: "Expert Courses",
+      description: "Learn from industry professionals and enhance your skills.",
+      icon: "📚",
+      link: "/courses"
+    },
+    {
+      title: "Community",
+      description: "Join a global community of passionate travelers and learners.",
+      icon: "👥",
+      link: "/about"
     }
-  };
-
-  const openPost = (post: BlogPost) => {
-    setSelectedPost(post);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedPost(null);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const getTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const postDate = new Date(dateString);
-    const diffInHours = Math.floor((now.getTime() - postDate.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 48) return 'Yesterday';
-    return formatDate(dateString);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#f7f6f2] flex items-center justify-center">
-        <motion.div 
-          className="flex flex-col items-center gap-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          <div className="relative">
-            <motion.div
-              className="w-16 h-16 rounded-full border-2 border-gray-200 border-t-green-600"
-              animate={{ rotate: 360 }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-            />
-            <motion.div
-              className="absolute top-1/2 left-1/2 w-2 h-2 bg-green-600 rounded-full -translate-x-1/2 -translate-y-1/2"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [1, 0.8, 1]
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-green-700 text-sm font-light tracking-[0.2em]">LOADING</span>
-            <span className="text-gray-500 text-xs font-light tracking-wider">ANNOUNCEMENTS</span>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#f7f6f2] flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md text-center"
-        >
-          <div className="text-red-500 text-6xl mb-6">!</div>
-          <h2 className="text-2xl font-light mb-4">Something went wrong</h2>
-          <p className="text-gray-600">{error}</p>
-        </motion.div>
-      </div>
-    );
-  }
+  ];
 
   return (
-    <div className="min-h-screen bg-[#f7f6f2]">
-      {/* Daily Announcements Feed */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {posts.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📢</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">No Announcements Today</h2>
-            <p className="text-gray-600">Check back later for today's spiritual message</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {posts.map((post, index) => (
-              <motion.article
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => openPost(post)}
-              >
-                {/* Post Header */}
-                <div className="p-6 border-b border-gray-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">A</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{post.author}</p>
-                        <p className="text-sm text-gray-500">{getTimeAgo(post.published_date)}</p>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full">
-                      Daily Message
-                    </div>
-                  </div>
-                  
-                  <h2 className="text-xl font-bold text-gray-800 mb-2">
-                    {post.title}
-                  </h2>
-                </div>
+    <div ref={containerRef} className="relative min-h-screen overflow-hidden">
+      {/* Hero Section */}
+      <div className="relative h-screen flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="https://images.unsplash.com/photo-1469474968028-56623f02e42e"
+            alt="Hero background"
+            layout="fill"
+            objectFit="cover"
+            priority
+            className="transition-transform duration-1000 scale-105"
+          />
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
 
-                {/* Post Content Preview */}
-                <div className="p-6">
-                  {/* Image if available */}
-                  {post.image_url && (
-                    <div className="mb-4 rounded-xl overflow-hidden">
-                      <Image
-                        src={post.image_url}
-                        alt={post.title}
-                        width={600}
-                        height={300}
-                        className="w-full h-48 object-cover"
-                      />
-                    </div>
-                  )}
-                  
-                  {/* Content Preview */}
-                  <div className="prose prose-sm max-w-none">
-                    <div 
-                      className="text-gray-700 leading-relaxed"
-                      dangerouslySetInnerHTML={{ 
-                        __html: post.excerpt || post.content.substring(0, 200) + '...' 
-                      }} 
-                    />
-                  </div>
-                  
-                  <div className="mt-4 flex items-center justify-between">
-                    <button className="text-green-600 font-medium text-sm hover:text-green-700 transition flex items-center gap-1">
-                      Read Full Message
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                    <div className="text-xs text-gray-400">
-                      Click to view & discuss
-                    </div>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
+        <motion.div
+          className="relative z-10 text-center px-4 sm:px-6 lg:px-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <motion.h1
+            className="text-4xl sm:text-6xl md:text-7xl font-bold text-white mb-6"
+            style={{ y }}
+          >
+            Begin Your Journey
+          </motion.h1>
+          <p className="text-xl sm:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto">
+            Discover amazing destinations and learn from the best. Your adventure starts here.
+          </p>
+          <motion.div
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+          >
+            <Link href="/trips">
+              <motion.button
+                className="px-8 py-4 bg-blue-600 text-white rounded-full font-medium
+                  hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl
+                  transform hover:scale-105"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Explore Trips
+              </motion.button>
+            </Link>
+            <Link href="/courses">
+              <motion.button
+                className="px-8 py-4 bg-white text-gray-900 rounded-full font-medium
+                  hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl
+                  transform hover:scale-105"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Browse Courses
+              </motion.button>
+            </Link>
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          className="absolute bottom-10 left-1/2 transform -translate-x-1/2"
+          animate={{
+            y: [0, 10, 0],
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
+            <div className="w-1 h-3 bg-white rounded-full mt-2" />
           </div>
-        )}
+        </motion.div>
       </div>
 
-      {/* Blog Post Modal */}
-      <AnimatePresence>
-        {showModal && selectedPost && (
+      {/* Features Section */}
+      <div className="relative bg-white py-20 sm:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              {/* Modal Header */}
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">A</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{selectedPost.author}</p>
-                        <p className="text-sm text-gray-500">{formatDate(selectedPost.published_date)}</p>
-                      </div>
-                    </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-                      {selectedPost.title}
-                    </h1>
-                  </div>
-                  <button
-                    onClick={closeModal}
-                    className="text-gray-400 hover:text-gray-600 transition-colors ml-4 p-2 hover:bg-gray-100 rounded-full"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6">
-                {/* Post Image */}
-                {selectedPost.image_url && (
-                  <div className="mb-6 rounded-xl overflow-hidden">
-                    <Image
-                      src={selectedPost.image_url}
-                      alt={selectedPost.title}
-                      width={800}
-                      height={400}
-                      className="w-full h-64 object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* Post Content */}
-                <article className="prose prose-lg max-w-none mb-8">
-                  <div dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
-                </article>
-
-                {/* Comments Section */}
-                <div className="border-t border-gray-200 pt-8">
-                  <h2 className="text-xl font-bold text-gray-800 mb-6">Share Your Thoughts</h2>
-                  <div id="giscus-container" />
-                </div>
-              </div>
-            </motion.div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Why Choose Sovesa?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              We offer unique experiences and expert-led courses to help you grow.
+            </p>
           </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Giscus Script */}
-      {showModal && selectedPost && (
-        <GiscusComments postSlug={selectedPost.slug} />
-      )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                className="relative group"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <Link href={feature.link}>
+                  <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl
+                    transition-all duration-300 transform hover:-translate-y-1">
+                    <div className="text-4xl mb-4">{feature.icon}</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      {feature.title}
+                    </h3>
+                    <p className="text-gray-600">
+                      {feature.description}
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Call to Action */}
+      <div className="relative bg-blue-600 py-16 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+              Ready to Start Your Adventure?
+            </h2>
+            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+              Join thousands of travelers and learners in their journey of discovery.
+            </p>
+            <motion.button
+              className="px-8 py-4 bg-white text-blue-600 rounded-full font-medium
+                hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Get Started Today
+            </motion.button>
+          </motion.div>
+        </div>
+      </div>
     </div>
   );
-}
-
-// Giscus Comments Component
-function GiscusComments({ postSlug }: { postSlug: string }) {
-  useEffect(() => {
-    // Remove existing script if any
-    const existingScript = document.querySelector('script[src="https://giscus.app/client.js"]');
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    // Create new script
-    const script = document.createElement('script');
-    script.src = 'https://giscus.app/client.js';
-    script.setAttribute('data-repo', 'yourusername/blog-comments'); // Replace with your repo
-    script.setAttribute('data-repo-id', 'YOUR_REPO_ID'); // Replace with your repo ID
-    script.setAttribute('data-category', 'General');
-    script.setAttribute('data-category-id', 'YOUR_CATEGORY_ID'); // Replace with your category ID
-    script.setAttribute('data-mapping', 'pathname');
-    script.setAttribute('data-strict', '0');
-    script.setAttribute('data-reactions-enabled', '1');
-    script.setAttribute('data-emit-metadata', '0');
-    script.setAttribute('data-input-position', 'bottom');
-    script.setAttribute('data-theme', 'light');
-    script.setAttribute('data-lang', 'en');
-    script.setAttribute('crossorigin', 'anonymous');
-    script.async = true;
-
-    // Append to container
-    const container = document.getElementById('giscus-container');
-    if (container) {
-      container.appendChild(script);
-    }
-
-    // Cleanup function
-    return () => {
-      const scriptToRemove = document.querySelector('script[src="https://giscus.app/client.js"]');
-      if (scriptToRemove) {
-        scriptToRemove.remove();
-      }
-    };
-  }, [postSlug]);
-
-  return null;
 }

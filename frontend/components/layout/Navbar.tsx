@@ -1,33 +1,23 @@
 "use client";
 
-import { Inter } from "next/font/google";
 import "@/app/globals.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { signOut } from "next-auth/react";
-
-const inter = Inter({ subsets: ["latin"] });
-
-interface ExtendedSession {
-  user: {
-    id: string;
-    email: string;
-    is_sadhaka?: boolean;
-  };
-  accessToken?: string;
-}
+import { signIn, signOut } from "next-auth/react";
+import Image from "next/image";
 
 const Navbar = ()=>{
-  const {data: session} = useSession();
-  const isSadhaka = (session as any)?.user?.is_sadhaka;
+  const { data: session } = useSession();
   const isLoggedIn=!!session;
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,11 +28,25 @@ const Navbar = ()=>{
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const menuItems = [
-    { name: "Announcements", path: "/" },
+    { name: "Home", path: "/" },
     { name: "Soul Walks", path: "/trips" },
     { name: "DivyaVidya", path: "/courses" },
     { name: "Divine Bazaar", path: "/bazaar" },
+    { name: "AboutUs", path: "/about" },
   ];
 
   const renderMenuItems = (mobile: boolean = false) => (
@@ -68,6 +72,23 @@ const Navbar = ()=>{
       ))}
     </>
   );
+
+  const handleSignIn = async () => {
+    try {
+      console.log('Attempting to sign in with Google...');
+      const result = await signIn('google', { 
+        callbackUrl: window.location.href,
+        redirect: true 
+      });
+      console.log('Sign in result:', result);
+    } catch (error) {
+      console.error('Sign in error:', error);
+    }
+  };
+
+  const handleSignOut = () => {
+    signOut();
+  };
 
   return (
         <motion.header
@@ -98,53 +119,62 @@ const Navbar = ()=>{
               <div className="hidden sm:flex items-center space-x-4">
                 {renderMenuItems()}
 
-                {/* For condition dashboard button */}
-                {isLoggedIn && isSadhaka &&
-                  (<Link href="/dashboard">
-                  <motion.span
-                    className={`relative px-4 py-2 text-${false ? 'lg' : 'sm'} cursor-pointer
-                      ${pathname === "/dashboard" ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'}`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    BhaktiMeter
-                    {pathname === "/dashboard" && (
-                      <motion.div
-                        layoutId="underline"
-                        className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
-                        initial={false}
-                      />
-                    )}
-                  </motion.span>
-                </Link>
-                  )
-                }
-
                 {!isLoggedIn && 
-                  (<Link href="/auth">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="ml-4 px-6 py-2 bg-green-600 text-white rounded-full font-medium
-                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                  >
-                    Login
-                  </motion.button>
-                  </Link>
-                  )
-                }
-                {isLoggedIn && 
                   (<motion.button
-                    onClick={()=>signOut({ callbackUrl: "/" })}
+                    onClick={handleSignIn}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="ml-4 px-6 py-2 bg-green-600 text-white rounded-full font-medium
                       hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
                   >
-                    Logout
+                    Login with Google
                   </motion.button>
                   )
                 }
+                {isLoggedIn && (
+                  <div className="relative ml-4" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowProfileMenu((v) => !v)}
+                      onBlur={() => setTimeout(() => setShowProfileMenu(false), 150)}
+                      className="focus:outline-none"
+                    >
+                      {session?.user?.image ? (
+                        <Image
+                          src={session.user.image}
+                          alt="Profile"
+                          width={40}
+                          height={40}
+                          className="rounded-full border-2 border-green-600 shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-600">
+                            {session.user?.name?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                    {showProfileMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 border"
+                        onMouseLeave={() => setShowProfileMenu(false)}
+                      >
+                        <Link href="/dashboard">
+                          <span className="block px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer">Profile</span>
+                        </Link>
+                        <button
+                          onClick={handleSignOut}
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        >
+                          Logout
+                        </button>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Mobile Menu Button */}
@@ -183,50 +213,60 @@ const Navbar = ()=>{
                 <div className="px-4 py-6 space-y-4 flex flex-col items-center">
                   {renderMenuItems(true)}
 
-                  {/* for conditional dashboard */}
-                  {isLoggedIn && isSadhaka &&
-                    (<Link href="/dashboard">
-                    <motion.span
-                      className={`relative px-4 py-2 text-${true ? 'lg' : 'sm'} cursor-pointer
-                        ${pathname === "/dashboard" ? 'text-green-600' : 'text-gray-600 hover:text-gray-900'}`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      BhaktiMeter
-                      {pathname === "/dashboard" && (
-                        <motion.div
-                          layoutId="underline"
-                          className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
-                          initial={false}
-                        />
-                      )}
-                    </motion.span>
-                  </Link>
-                  )
-                }
-
                 {!isLoggedIn && (
-                  <Link href="/auth">
                   <motion.button
+                    onClick={handleSignIn}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="w-full px-6 py-3 bg-green-600 text-white rounded-full font-medium
                       hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
                   >
-                    Login
+                    Login with Google
                   </motion.button>
-                  </Link>
                 )}
                 {isLoggedIn && (
-                  <motion.button
-                    onClick={()=>signOut({ callbackUrl: "/" })}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full px-6 py-3 bg-green-600 text-white rounded-full font-medium
-                      hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                  >
-                    Logout
-                  </motion.button>
+                  <div className="relative ml-4" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowProfileMenu((v) => !v)}
+                      onBlur={() => setTimeout(() => setShowProfileMenu(false), 150)}
+                      className="focus:outline-none"
+                    >
+                      {session?.user?.image ? (
+                        <Image
+                          src={session.user.image}
+                          alt="Profile"
+                          width={40}
+                          height={40}
+                          className="rounded-full border-2 border-green-600 shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-600">
+                            {session.user?.name?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                    {showProfileMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 border"
+                        onMouseLeave={() => setShowProfileMenu(false)}
+                      >
+                        <Link href="/dashboard">
+                          <span className="block px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer">BhaktiMeter</span>
+                        </Link>
+                        <button
+                          onClick={handleSignOut}
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        >
+                          Logout
+                        </button>
+                      </motion.div>
+                    )}
+                  </div>
                 )}
                 </div>
               </motion.div>
