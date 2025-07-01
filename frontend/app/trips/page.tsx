@@ -5,15 +5,6 @@ import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { useSession, signIn } from "next-auth/react";
 import { apiService } from "@/lib/api";
 
-interface UserFields {
-  studentId?: string;
-  phone?: string;
-}
-
-interface UserRecord {
-  fields?: UserFields;
-}
-
 interface PaymentFormData {
     email: string;
     name: string;
@@ -226,6 +217,7 @@ export default function TripsPage() {
     const [showLoginDialog, setShowLoginDialog] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [registrationStatus, setRegistrationStatus] = useState<{[key: string]: boolean}>({});
     
     // Refs and scroll hooks
     const containerRef = useRef<HTMLDivElement>(null);
@@ -258,22 +250,24 @@ export default function TripsPage() {
 
     // Load user data when session changes
     useEffect(() => {
-        console.log('Session status:', session.status, 'Session data:', session.data);
-        
-        if (session.status === 'authenticated' && session.data?.user?.email) {
-            console.log('Storing user data for:', session.data.user.email);
+        if (session.data?.user?.email) {
             loadUserData();
-            // Also ensure user is stored in database
-            storeUserData();
         }
-    }, [session.status, session.data]);
+    }, [session.data]);
+
+    // Check registration status when trips are loaded and user is logged in
+    useEffect(() => {
+        if (session.data?.user?.email && trips.length > 0) {
+            checkRegistrationStatus();
+        }
+    }, [session.data?.user?.email, trips]);
 
     const loadUserData = async () => {
         try {
             const result = await apiService.getUserByEmail(session.data?.user?.email || "");
             
             if (result.success && result.data && typeof result.data === 'object' && 'user' in result.data) {
-                const user = (result.data as { user: UserRecord }).user;
+                const user = (result.data as { user: any }).user;
                 setFormData(prev => ({
                     ...prev,
                     email: session.data?.user?.email || "",
@@ -282,8 +276,7 @@ export default function TripsPage() {
                     phone: user.fields?.phone || "",
                 }));
             } else {
-                // Handle error silently in production
-                // Fallback to session data
+                // If user not found in database, use session data
                 setFormData(prev => ({
                     ...prev,
                     email: session.data?.user?.email || "",
@@ -292,8 +285,8 @@ export default function TripsPage() {
                     phone: "",
                 }));
             }
-        } catch{
-            // Handle error silently in production
+        } catch (error) {
+            console.error("Error loading user data:", error);
             // Fallback to session data
             setFormData(prev => ({
                 ...prev,
@@ -305,46 +298,32 @@ export default function TripsPage() {
         }
     };
 
-    const storeUserData = async () => {
-        if (!session.data?.user?.email || !session.data?.user?.name) {
-            console.error('Missing user data for storage:', { email: session.data?.user?.email, name: session.data?.user?.name });
-            return;
-        }
+    const checkRegistrationStatus = async () => {
+        if (!session.data?.user?.email || trips.length === 0) return;
         
-        // Retry logic for user data storage
-        let retries = 3;
-        while (retries > 0) {
+        const status: {[key: string]: boolean} = {};
+        
+        // Use Promise.all for efficient parallel API calls
+        const promises = trips.map(async (trip) => {
             try {
-                const result = await apiService.storeUser({
-                    name: session.data.user.name,
-                    email: session.data.user.email,
-                    profile_photo: session.data.user.image || '',
-                });
-                
-                if (result.success) {
-                    console.log('User data stored successfully:', result.message);
-                    return; // Success, exit retry loop
-                } else {
-                    console.error('Failed to store user data:', result.error);
-                    retries--;
-                    if (retries > 0) {
-                        console.log(`Retrying... ${retries} attempts left`);
-                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-                    }
-                }
+                const result = await apiService.isUserRegisteredForTrip(
+                    session.data!.user!.email!,
+                    trip.fields["trip-title"]
+                );
+                return { tripId: trip.id, isRegistered: result.success ? (result.data || false) : false };
             } catch (error) {
-                console.error('Error storing user data:', error);
-                retries--;
-                if (retries > 0) {
-                    console.log(`Retrying... ${retries} attempts left`);
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-                }
+                console.error(`Error checking registration for trip ${trip.id}:`, error);
+                return { tripId: trip.id, isRegistered: false };
             }
-        }
+        });
         
-        if (retries === 0) {
-            console.error('Failed to store user data after all retries');
-        }
+        const results = await Promise.all(promises);
+        
+        results.forEach(({ tripId, isRegistered }) => {
+            status[tripId] = isRegistered;
+        });
+        
+        setRegistrationStatus(status);
     };
 
     const handleCardExpand = (tripId: string) => {
@@ -352,14 +331,22 @@ export default function TripsPage() {
     };
 
     const handleJoinNow = async (trip: Trip) => {
+        // Check if user is authenticated
         if (!session.data) {
             setShowLoginDialog(true);
             return;
         }
         
+        // Check if user is already registered for this trip
+        if (registrationStatus[trip.id]) {
+            return; // Don't allow registration if already registered
+        }
+        
         setSelectedTrip(trip);
         setShowPaymentModal(true);
         setFormStep(1);
+        
+        // Load user data to auto-fill the form
         await loadUserData();
     };
 
@@ -544,18 +531,28 @@ export default function TripsPage() {
                 </p>
                 
                 <motion.button
-                    whileHover={{ scale: expandedCard === trip.id ? 1.05 : 1 }}
-                    whileTap={{ scale: expandedCard === trip.id ? 0.95 : 1 }}
+                    whileHover={{ scale: expandedCard === trip.id && !registrationStatus[trip.id] ? 1.05 : 1 }}
+                    whileTap={{ scale: expandedCard === trip.id && !registrationStatus[trip.id] ? 0.95 : 1 }}
                     onClick={() => {
                         if (expandedCard === trip.id) {
-                            handleJoinNow(trip);
+                            if (!registrationStatus[trip.id]) {
+                                handleJoinNow(trip);
+                            }
                         } else {
                             handleCardExpand(trip.id);
                         }
                     }}
-                    className="px-6 sm:px-8 py-3 font-medium rounded-full transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"
+                    disabled={expandedCard === trip.id && registrationStatus[trip.id]}
+                    className={`px-6 sm:px-8 py-3 font-medium rounded-full transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit ${
+                        expandedCard === trip.id && registrationStatus[trip.id]
+                            ? 'bg-gray-400 text-white cursor-not-allowed'
+                            : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
+                    }`}
                 >
-                    {expandedCard === trip.id ? "Join Now!" : "View More"}
+                    {expandedCard === trip.id 
+                        ? (registrationStatus[trip.id] ? "Already Registered" : "Join Now!")
+                        : "View More"
+                    }
                 </motion.button>
             </motion.div>
         </motion.div>
