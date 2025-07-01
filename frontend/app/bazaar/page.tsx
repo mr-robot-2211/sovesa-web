@@ -74,6 +74,8 @@ export default function DivineBazaar() {
   const [page, setPage] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
   const CARDS_PER_PAGE_MOBILE = 2;
+  const [modalProduct, setModalProduct] = useState<Product | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
   // Fetch products from API
   useEffect(() => {
@@ -188,8 +190,14 @@ export default function DivineBazaar() {
     return () => clearInterval(interval);
   }, []);
 
+  // Placeholder for multiple images (since only one image field exists)
+  function getProductImages(product: Product) {
+    // If you add more image fields, update this function
+    return [product.image, product.image, product.image];
+  }
+
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 pb-16 overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-white pb-16 overflow-hidden">
       {/* Toast */}
       <AnimatePresence>
         {toast && (
@@ -207,21 +215,21 @@ export default function DivineBazaar() {
       <AnimatePresence>
         {showCart && (
           <motion.div
-            className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+            className="fixed inset-0 z-40 flex items-center justify-center bg-black/30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowCart(false)}
           >
             <motion.div
-              className="bg-gray-100 rounded-3xl shadow-2xl max-w-lg w-full relative z-50 flex flex-col"
+              className="bg-white rounded-3xl shadow-2xl max-w-lg w-full relative z-50 flex flex-col"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={e => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-t-3xl px-8 py-5 flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 rounded-t-3xl px-8 py-5 flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-white">Your Cart</h2>
                 <button className="text-white text-2xl font-bold hover:opacity-80" onClick={() => setShowCart(false)}>&times;</button>
               </div>
@@ -232,11 +240,11 @@ export default function DivineBazaar() {
                   {Object.values(cart).map(({ product, quantity }) => (
                     <div key={product.id} className="flex items-center justify-between gap-4 py-4 border-b border-gray-200 last:border-b-0">
                       <div className="flex items-center gap-4">
-                        <span className="text-7xl mb-6 flex items-center justify-center w-48 h-48 rounded-2xl border border-gray-700 bg-[#101c3c]">
+                        <span className="text-7xl mb-6 flex items-center justify-center w-48 h-48 rounded-2xl border border-gray-200 bg-gray-50">
                           {product.image}
                         </span>
                         <div>
-                          <div className="font-semibold text-lg text-gray-900 mb-1">{product.name}</div>
+                          <div className="font-semibold text-lg text-black mb-1">{product.name}</div>
                           <div className="text-gray-500 text-sm">{formatPrice(product.price)}</div>
                         </div>
                       </div>
@@ -264,12 +272,12 @@ export default function DivineBazaar() {
               {/* Sticky Footer */}
               <div className="sticky bottom-0 left-0 right-0 bg-gray-50 rounded-b-3xl px-8 py-5 mt-4 shadow-inner border-t border-gray-200">
                 <div className="flex justify-between items-center mb-4">
-                  <span className="font-bold text-lg text-gray-900">Total:</span>
+                  <span className="font-bold text-lg text-black">Total:</span>
                   <span className="font-bold text-lg text-blue-700">{formatPrice(cartTotal)}</span>
                 </div>
                 <div className="flex gap-4">
                   <button
-                    className="flex-1 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-400 text-white font-semibold transition text-lg"
+                    className="flex-1 py-3 rounded-lg bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 text-white font-semibold transition text-lg"
                     onClick={() => { setShowCart(false); handleCheckout(); }}
                     disabled={Object.keys(cart).length === 0}
                   >
@@ -498,6 +506,70 @@ export default function DivineBazaar() {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Product Modal */}
+      <AnimatePresence>
+        {modalProduct && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setModalProduct(null)}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 relative flex flex-col items-center"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-gray-700 font-bold"
+                onClick={() => setModalProduct(null)}
+              >
+                &times;
+              </button>
+              {/* Image Carousel */}
+              <div className="w-full flex flex-col items-center mb-6">
+                <div className="relative w-72 h-72 flex items-center justify-center mx-auto">
+                  <button
+                    className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-2 shadow hover:bg-gray-100 z-10"
+                    onClick={() => setCarouselIndex(i => (i - 1 + getProductImages(modalProduct).length) % getProductImages(modalProduct).length)}
+                  >
+                    &#8592;
+                  </button>
+                  <span className="text-8xl flex items-center justify-center w-72 h-72 rounded-2xl border border-gray-200 bg-gray-50">
+                    {getProductImages(modalProduct)[carouselIndex]}
+                  </span>
+                  <button
+                    className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-2 shadow hover:bg-gray-100 z-10"
+                    onClick={() => setCarouselIndex(i => (i + 1) % getProductImages(modalProduct).length)}
+                  >
+                    &#8594;
+                  </button>
+                </div>
+                {/* Dots */}
+                <div className="flex gap-2 mt-2">
+                  {getProductImages(modalProduct).map((_, idx) => (
+                    <span
+                      key={idx}
+                      className={`w-3 h-3 rounded-full ${carouselIndex === idx ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              {/* Product Details */}
+              <h2 className="text-2xl font-bold text-black mb-2 text-center">{modalProduct.name}</h2>
+              <div className="text-lg text-gray-700 mb-4 text-center">Price: {formatPrice(modalProduct.price)}</div>
+              <div className="text-base text-gray-500 mb-2 text-center">Quantity Available: {modalProduct.quantity}</div>
+              {modalProduct.discount && (
+                <div className="text-base text-green-600 mb-2 text-center">Discount: {modalProduct.discount}%</div>
+              )}
+              {/* Add more details here if available */}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Hero Section */}
       <section className="max-w-5xl mx-auto px-4 pt-20 pb-14 text-center flex flex-col items-center">
         <motion.h1
@@ -533,65 +605,88 @@ export default function DivineBazaar() {
       {/* Gradient Divider */}
       <div className="w-full h-1 my-0" style={{background: 'linear-gradient(90deg, #2563eb 0%, #9333ea 100%)', height: '5px'}} />
       {/* Product Grid */}
-      <section id="products" className="max-w-6xl mx-auto px-4 mt-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      <section id="products" className="w-full px-4 mt-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 w-full">
           {paginatedProducts.map((product, idx) => (
             <motion.div
               key={product.id}
-              className="bg-[#0a183d] border border-blue-900 rounded-2xl shadow-xl p-6 min-h-[420px] flex flex-col justify-between"
+              className="bg-white border border-gray-200 rounded-2xl shadow-lg p-4 flex flex-row items-stretch min-h-[340px] w-full overflow-hidden"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
+              onClick={() => { setModalProduct(product); setCarouselIndex(0); }}
+              style={{ cursor: 'pointer' }}
             >
-              <div className="flex flex-col items-center w-full flex-1">
-                <span className="text-7xl mb-6 flex items-center justify-center w-48 h-48 rounded-2xl border border-gray-700 bg-[#101c3c]">
-                  {product.image}
-                </span>
-                <h2 className="text-2xl font-semibold mb-4 text-center text-blue-100">{product.name}</h2>
+              {/* Left: Image */}
+              <div className="flex-shrink-0 flex items-center justify-center w-64 h-64 rounded-2xl border border-gray-200 bg-gray-50 mr-8 text-8xl self-center">
+                {product.image}
               </div>
-              {/* Action Buttons at the bottom, always at constant height */}
-              <div className="flex w-full mt-2 items-center gap-2 min-h-[60px]">
-                {cart[product.id] ? (
-                  <>
-                    <button
-                      className="flex-1 py-3 rounded-lg bg-gradient-to-r from-red-600 via-red-500 to-pink-500 text-white hover:opacity-90 font-semibold transition text-lg shadow-md"
-                      onClick={() => handleRemoveFromCart(product.id)}
-                    >
-                      Remove
-                    </button>
-                    <button
-                      className="flex-1 py-3 rounded-lg bg-gradient-to-r from-purple-700 via-purple-500 to-fuchsia-500 text-white hover:opacity-90 font-semibold transition text-lg shadow-md"
-                      onClick={() => setCart({})}
-                    >
-                      Discard All
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      className="flex-1 py-3 rounded-lg bg-gradient-to-r from-green-600 via-emerald-500 to-green-400 text-white hover:opacity-90 font-semibold transition text-lg shadow-md"
-                      onClick={() => handleBuyNow(product)}
-                    >
-                      Buy Now
-                    </button>
-                    <button
-                      className="flex-1 py-3 rounded-lg bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-400 text-white hover:opacity-90 font-semibold transition text-lg shadow-md"
-                      onClick={() => handleAddToCart(product)}
-                    >
-                      Add to Cart
-                    </button>
-                  </>
-                )}
-                <select
-                  className="w-16 py-2 px-2 rounded-lg bg-gradient-to-r from-[#13294b] to-[#223a63] text-blue-100 border border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ml-2 font-semibold shadow-md"
-                  value={quantities[product.id]}
-                  onChange={e => setQuantities(q => ({ ...q, [product.id]: Number(e.target.value) }))}
-                >
-                  {[1,2,3,4,5].map(q => (
-                    <option key={q} value={q}>{q}</option>
-                  ))}
-                </select>
+              {/* Right: Details */}
+              <div className="flex-1 flex flex-col justify-center h-full min-w-0">
+                {/* Top: Name and Price */}
+                <div>
+                  <h2 className="text-2xl font-semibold text-black mb-2 break-words truncate">{product.name}</h2>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xl text-blue-700 font-bold">{formatPrice(product.price)}</span>
+                    {product.discount && (
+                      <span className="text-base text-green-600 font-semibold">{product.discount}% OFF</span>
+                    )}
+                  </div>
+                </div>
+                {/* Middle: Quantity and Stock */}
+                <div className="flex items-center gap-3 mb-2">
+                  <select
+                    className="w-24 py-2 px-3 rounded-lg bg-gray-50 text-black border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 font-medium text-base"
+                    value={quantities[product.id]}
+                    onChange={e => setQuantities(q => ({ ...q, [product.id]: Number(e.target.value) }))}
+                  >
+                    {[...Array(Math.min(product.quantity, 5)).keys()].map(q => (
+                      <option key={q+1} value={q+1}>{q+1}</option>
+                    ))}
+                  </select>
+                  {product.quantity < 5 && (
+                    <span className="text-base text-red-500 ml-2">— Only {product.quantity} left!</span>
+                  )}
+                </div>
+                {/* Bottom: Buttons */}
+                <div className="flex flex-col gap-2">
+                  {cart[product.id] ? (
+                    <>
+                      <button
+                        className="py-3 rounded bg-red-100 text-red-600 text-base transition shadow-sm hover:bg-red-200"
+                        style={{ fontWeight: 400 }}
+                        onClick={e => { e.stopPropagation(); handleRemoveFromCart(product.id); }}
+                      >
+                        Remove
+                      </button>
+                      <button
+                        className="py-3 rounded bg-gray-100 text-gray-600 text-base transition shadow-sm hover:bg-gray-200"
+                        style={{ fontWeight: 400 }}
+                        onClick={e => { e.stopPropagation(); setCart({}); }}
+                      >
+                        Discard All
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="py-3 rounded bg-gradient-to-r from-green-500 to-emerald-500 text-white text-base transition shadow-sm hover:opacity-90"
+                        style={{ fontWeight: 400 }}
+                        onClick={e => { e.stopPropagation(); handleBuyNow(product); }}
+                      >
+                        Buy Now
+                      </button>
+                      <button
+                        className="py-3 rounded bg-gradient-to-r from-blue-600 to-blue-400 text-white text-base transition shadow-sm hover:opacity-90"
+                        style={{ fontWeight: 400 }}
+                        onClick={e => { e.stopPropagation(); handleAddToCart(product); }}
+                      >
+                        Add to Cart
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
