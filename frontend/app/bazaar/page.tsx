@@ -28,160 +28,8 @@ const CATEGORIES = [
   { key: "incense", name: "Incense & Oils", icon: "🕉️" },
 ];
 
-const PRODUCTS: Product[] = [
-  {
-    id: 1,
-    name: "Pure Cotton Dhoti",
-    description: "Traditional handwoven cotton dhoti for daily wear and ceremonies",
-    price: 899,
-    originalPrice: 1299,
-    discount: 31,
-    image: "👘",
-    category: "clothing",
-    rating: 4.8,
-    reviews: 127,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 2,
-    name: "Tulasi Mala (108 beads)",
-    description: "Sacred tulasi wood chanting beads, handcrafted with devotion",
-    price: 1499,
-    image: "📿",
-    category: "beads",
-    rating: 4.9,
-    reviews: 89,
-    inStock: true,
-    quantity: 5,
-  },
-  {
-    id: 3,
-    name: "Bhagavad Gita Hardcover",
-    description: "Beautifully bound Bhagavad Gita with Sanskrit and English text",
-    price: 599,
-    originalPrice: 799,
-    discount: 25,
-    image: "📚",
-    category: "books",
-    rating: 4.7,
-    reviews: 203,
-    inStock: true,
-    quantity: 2,
-  },
-  {
-    id: 4,
-    name: "Brass Diya Set",
-    description: "Traditional brass oil lamps for aarti and home decoration",
-    price: 399,
-    image: "🏺",
-    category: "decor",
-    rating: 4.6,
-    reviews: 156,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 5,
-    name: "Sandalwood Incense Sticks",
-    description: "Pure sandalwood incense sticks, pack of 50",
-    price: 299,
-    image: "🕉️",
-    category: "incense",
-    rating: 4.5,
-    reviews: 342,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 6,
-    name: "Silk Kurta Set",
-    description: "Elegant silk kurta with matching dhoti for special occasions",
-    price: 2499,
-    originalPrice: 3499,
-    discount: 29,
-    image: "👘",
-    category: "clothing",
-    rating: 4.8,
-    reviews: 67,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 7,
-    name: "Rudraksha Mala",
-    description: "Authentic 5-mukhi rudraksha beads for meditation",
-    price: 899,
-    image: "📿",
-    category: "beads",
-    rating: 4.9,
-    reviews: 134,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 8,
-    name: "Srimad Bhagavatam",
-    description: "Complete 12-volume set of Srimad Bhagavatam",
-    price: 3999,
-    originalPrice: 4999,
-    discount: 20,
-    image: "📚",
-    category: "books",
-    rating: 4.8,
-    reviews: 45,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 9,
-    name: "Copper Kalash",
-    description: "Traditional copper kalash for religious ceremonies",
-    price: 1299,
-    image: "🏺",
-    category: "decor",
-    rating: 4.7,
-    reviews: 78,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 10,
-    name: "Guggulu Incense",
-    description: "Sacred guggulu resin incense for purification",
-    price: 449,
-    image: "🕉️",
-    category: "incense",
-    rating: 4.6,
-    reviews: 92,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 11,
-    name: "Cotton Angavastram",
-    description: "Traditional cotton upper garment for temple visits",
-    price: 699,
-    image: "👘",
-    category: "clothing",
-    rating: 4.5,
-    reviews: 113,
-    inStock: true,
-    quantity: 10,
-  },
-  {
-    id: 12,
-    name: "Crystal Mala",
-    description: "Clear quartz crystal mala for healing and meditation",
-    price: 1799,
-    image: "📿",
-    category: "beads",
-    rating: 4.8,
-    reviews: 67,
-    inStock: true,
-    quantity: 10,
-  },
-];
+// Comment out or remove the static PRODUCTS array
+// const PRODUCTS: Product[] = [ ... ];
 
 const testimonials = [
   {
@@ -210,7 +58,7 @@ export default function DivineBazaar() {
   const [sortBy, setSortBy] = useState("popular");
   const [cart, setCart] = useState<Record<number, { product: Product; quantity: number }>>({});
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [quantities, setQuantities] = useState<Record<number, number>>(() => PRODUCTS.reduce((acc, p) => ({ ...acc, [p.id]: 1 }), {}));
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState<null | { mode: "cart" | "buy"; product?: Product; quantity?: number }>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -224,9 +72,39 @@ export default function DivineBazaar() {
   const [bawanName, setBawanName] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
   const [page, setPage] = useState(0);
+  const [products, setProducts] = useState<Product[]>([]);
   const CARDS_PER_PAGE_MOBILE = 2;
 
-  const filteredProducts = PRODUCTS.filter(product => {
+  // Fetch products from API
+  useEffect(() => {
+    fetch("/api/products")
+      .then(res => res.json())
+      .then(data => {
+        // Teable returns { records: [...] }
+        const records = data.records || [];
+        // Map Teable fields to Product interface
+        const mappedProducts = records.map((rec: any) => ({
+          id: rec.id,
+          name: rec.fields['Item '] || "Unnamed Product",
+          description: '', // No description field in provided columns
+          price: Number(rec.fields['Price'] || 0),
+          image: "🛍️", // Default icon, as no image field is provided
+          category: "other", // No category field provided
+          rating: 0, // No rating field provided
+          reviews: 0, // No reviews field provided
+          inStock: true, // Assume in stock
+          originalPrice: undefined, // No original price field
+          discount: rec.fields['Discount'] ? Number(rec.fields['Discount']) : undefined,
+          quantity: rec.fields['Quantity'] ? Number(rec.fields['Quantity']) : 1,
+        }));
+        setProducts(mappedProducts);
+        // Set default quantities for each product
+        setQuantities(mappedProducts.reduce((acc: Record<number, number>, p: Product) => ({ ...acc, [p.id]: 1 }), {}));
+      });
+  }, []);
+
+  // Replace all references to PRODUCTS with products
+  const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchQuery.toLowerCase());
