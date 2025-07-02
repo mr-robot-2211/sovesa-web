@@ -88,23 +88,39 @@ export default function Home() {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/volunteer/', {
+      const teableApiKey = "teable_accX1rfXi2JYIQ1BUTu_N89wltHtHeoRWzZZrnNnXAmAic4MXWaxunPNCEZn65s=";
+      const tableId = "tblYuqPNmfYm5iGAdvE";
+      // Map form fields to Teable columns
+      const payload = {
+        records: [
+          {
+            fields: {
+              email: form.email,
+              phone: form.phone,
+              volunteer: `${form.skill}${form.description ? ': ' + form.description : ''}`,
+            }
+          }
+        ]
+      };
+      const response = await fetch(`https://api.teable.io/v1/table/${tableId}/records`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${teableApiKey}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
-
       if (response.ok) {
         // Handle success (e.g., show a success message)
-        console.log('Volunteer form submitted successfully!');
+        alert('Volunteer form submitted successfully!');
         setShowModal(false);
       } else {
         // Handle error
+        alert('Failed to submit volunteer form');
         console.error('Failed to submit volunteer form');
       }
     } catch (error) {
+      alert('An error occurred while submitting the form.');
       console.error('An error occurred:', error);
     }
   };
@@ -151,26 +167,13 @@ export default function Home() {
   return (
     <div ref={containerRef} className="relative min-h-screen overflow-hidden">
       {/* Hero Section */}
-      <div className="relative min-h-screen bg-black flex items-center">
-        {/* Rotated label on left edge */}
-        <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 z-50">
-          <span
-            className="inline-block font-bold tracking-widest text-white"
-            style={{
-              transform: 'rotate(-90deg)',
-              fontSize: 'var(--font-size-3xl)',
-              letterSpacing: '0.2em',
-            }}
-          >
-            On Going Course
-          </span>
-        </div>
+      <div className="relative min-h-screen bg-black flex items-center pt-16 lg:pt-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-12 items-center text-center lg:text-left">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-y-12 gap-x-8 items-center text-center lg:text-left">
             {/* Text, details, and buttons column */}
             <div className="flex flex-col w-full lg:col-span-1">
               <motion.h1
-                className="text-6xl sm:text-7xl md:text-8xl font-bold mb-8"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 lg:mb-8 leading-tight"
                 style={{ y }}
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -182,50 +185,50 @@ export default function Home() {
                 </span>
               </motion.h1>
               <motion.p
-                className="text-lg sm:text-xl text-gray-300 mb-6 max-w-2xl mx-auto lg:mx-0 leading-relaxed"
+                className="text-base sm:text-lg lg:text-xl text-gray-300 mb-4 lg:mb-6 max-w-2xl mx-auto lg:mx-0 leading-relaxed"
                 initial={{ opacity: 0, x: 40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.7 }}
                 transition={{ duration: 0.7, delay: 0.1 }}
               >
                 AI is brilliant. But what about the intelligence within?
-                <br />
+                <br className="hidden sm:block" />
                 What if your thoughts, actions and destiny are governed by an Inner Algorithm, invisible yet precise?
-                <br />
+                <br className="hidden sm:block" />
                 Every algorithm has its architect. Who shaped yours?
               </motion.p>
               <motion.p
-                className="text-base sm:text-lg text-gray-400 mb-8 italic"
+                className="text-sm sm:text-base lg:text-lg text-gray-400 mb-6 lg:mb-8 italic"
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.7 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
               >
                 This is not your typical summer program!
-                <br />
+                <br className="hidden sm:block" />
                 This is an invitation for those who feel there's more to life than just data, degrees, and deadlines.
               </motion.p>
               {/* Details and Buttons (always column) */}
-              <div className="flex flex-col gap-4 w-full items-center justify-center">
+              <div className="flex flex-col gap-4 w-full items-center justify-center space-y-4">
                 <motion.div
-                  className="bg-gray-900/50 p-6 rounded-xl max-w-md w-full mb-4"
+                  className="bg-gray-900/50 p-4 sm:p-6 rounded-xl max-w-md w-full mb-4"
                   initial={{ opacity: 0, x: 40 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, amount: 0.7 }}
                   transition={{ duration: 0.7, delay: 0.1 }}
                 >
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="flex items-center gap-2 justify-center lg:justify-start">
-                      <span className="text-blue-500 text-xl">📅</span>
-                      <span className="text-gray-300">21 Days</span>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 justify-center lg:justify-start text-center">
+                      <span className="text-blue-500 text-lg sm:text-xl">📅</span>
+                      <span className="text-gray-300 text-xs sm:text-sm">21 Days</span>
                     </div>
-                    <div className="flex items-center gap-2 justify-center lg:justify-start">
-                      <span className="text-blue-500 text-xl">🌐</span>
-                      <span className="text-gray-300">Online</span>
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 justify-center lg:justify-start text-center">
+                      <span className="text-blue-500 text-lg sm:text-xl">🌐</span>
+                      <span className="text-gray-300 text-xs sm:text-sm">Online</span>
                     </div>
-                    <div className="flex items-center gap-2 justify-center lg:justify-start">
-                      <span className="text-blue-500 text-xl">⬆️</span>
-                      <span className="text-gray-300">Upgrade</span>
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 justify-center lg:justify-start text-center">
+                      <span className="text-blue-500 text-lg sm:text-xl">⬆️</span>
+                      <span className="text-gray-300 text-xs sm:text-sm">Upgrade</span>
                     </div>
                   </div>
                 </motion.div>
@@ -266,7 +269,7 @@ export default function Home() {
             {/* Image column (first hero) */}
             <motion.div
               ref={heroImgRef1}
-              className="relative h-[400px] lg:h-[600px] w-full"
+              className="relative h-[300px] sm:h-[400px] lg:h-[500px] xl:h-[600px] w-full"
               initial={{ opacity: 0, x: -40 }}
               animate={heroImgInView1 ? { opacity: 1, x: 0 } : { opacity: 0, x: -40 }}
               transition={{ duration: 0.8 }}
@@ -287,26 +290,13 @@ export default function Home() {
       <div className="w-full h-1 my-0" style={{background: 'linear-gradient(90deg, #2563eb 0%, #9333ea 100%)', height: '5px'}} />
 
       {/* Duplicated Hero Section for Upcoming Course */}
-      <div className="relative min-h-screen bg-black flex items-center">
-        {/* Rotated label on left edge */}
-        <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 z-50">
-          <span
-            className="inline-block font-bold tracking-widest text-white"
-            style={{
-              transform: 'rotate(-90deg)',
-              fontSize: 'var(--font-size-3xl)',
-              letterSpacing: '0.2em',
-            }}
-          >
-            Upcoming Course
-          </span>
-        </div>
+      <div className="relative min-h-screen bg-black flex items-center pt-16 lg:pt-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-12 items-center text-center lg:text-left">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-y-12 gap-x-8 items-center text-center lg:text-left">
             {/* Text, details, and buttons column */}
             <div className="flex flex-col w-full lg:col-span-1">
               <motion.h1
-                className="text-6xl sm:text-7xl md:text-8xl font-bold mb-8"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 lg:mb-8 leading-tight"
                 style={{ y }}
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -318,50 +308,50 @@ export default function Home() {
                 </span>
               </motion.h1>
               <motion.p
-                className="text-lg sm:text-xl text-gray-300 mb-6 max-w-2xl mx-auto lg:mx-0 leading-relaxed"
+                className="text-base sm:text-lg lg:text-xl text-gray-300 mb-4 lg:mb-6 max-w-2xl mx-auto lg:mx-0 leading-relaxed"
                 initial={{ opacity: 0, x: 40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.7 }}
                 transition={{ duration: 0.7, delay: 0.1 }}
               >
                 AI is brilliant. But what about the intelligence within?
-                <br />
+                <br className="hidden sm:block" />
                 What if your thoughts, actions and destiny are governed by an Inner Algorithm, invisible yet precise?
-                <br />
+                <br className="hidden sm:block" />
                 Every algorithm has its architect. Who shaped yours?
               </motion.p>
               <motion.p
-                className="text-base sm:text-lg text-gray-400 mb-8 italic"
+                className="text-sm sm:text-base lg:text-lg text-gray-400 mb-6 lg:mb-8 italic"
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.7 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
               >
                 This is not your typical summer program!
-                <br />
+                <br className="hidden sm:block" />
                 This is an invitation for those who feel there's more to life than just data, degrees, and deadlines.
               </motion.p>
               {/* Details and Buttons (always column) */}
-              <div className="flex flex-col gap-4 w-full items-center justify-center">
+              <div className="flex flex-col gap-4 w-full items-center justify-center space-y-4">
                 <motion.div
-                  className="bg-gray-900/50 p-6 rounded-xl max-w-md w-full mb-4"
+                  className="bg-gray-900/50 p-4 sm:p-6 rounded-xl max-w-md w-full mb-4"
                   initial={{ opacity: 0, x: 40 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, amount: 0.7 }}
                   transition={{ duration: 0.7, delay: 0.1 }}
                 >
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="flex items-center gap-2 justify-center lg:justify-start">
-                      <span className="text-blue-500 text-xl">📅</span>
-                      <span className="text-gray-300">21 Days</span>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 justify-center lg:justify-start text-center">
+                      <span className="text-blue-500 text-lg sm:text-xl">📅</span>
+                      <span className="text-gray-300 text-xs sm:text-sm">21 Days</span>
                     </div>
-                    <div className="flex items-center gap-2 justify-center lg:justify-start">
-                      <span className="text-blue-500 text-xl">🌐</span>
-                      <span className="text-gray-300">Online</span>
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 justify-center lg:justify-start text-center">
+                      <span className="text-blue-500 text-lg sm:text-xl">🌐</span>
+                      <span className="text-gray-300 text-xs sm:text-sm">Online</span>
                     </div>
-                    <div className="flex items-center gap-2 justify-center lg:justify-start">
-                      <span className="text-blue-500 text-xl">⬆️</span>
-                      <span className="text-gray-300">Upgrade</span>
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 justify-center lg:justify-start text-center">
+                      <span className="text-blue-500 text-lg sm:text-xl">⬆️</span>
+                      <span className="text-gray-300 text-xs sm:text-sm">Upgrade</span>
                     </div>
                   </div>
                 </motion.div>
@@ -402,7 +392,7 @@ export default function Home() {
             {/* Image column (second hero) */}
             <motion.div
               ref={heroImgRef2}
-              className="relative h-[400px] lg:h-[600px] w-full"
+              className="relative h-[300px] sm:h-[400px] lg:h-[500px] xl:h-[600px] w-full"
               initial={{ opacity: 0, x: -40 }}
               animate={heroImgInView2 ? { opacity: 1, x: 0 } : { opacity: 0, x: -40 }}
               transition={{ duration: 0.8 }}
@@ -422,9 +412,9 @@ export default function Home() {
       {/* Features and Volunteer Container */}
       <div className="relative bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
         {/* Upcoming Events Section */}
-        <section className="relative py-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="relative py-16 sm:py-24 lg:py-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2
-            className="text-4xl sm:text-5xl font-bold mb-12 text-center bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent"
+            className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-8 sm:mb-12 text-center bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent"
             initial={{ opacity: 0, x: -40 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.7 }}
@@ -432,22 +422,22 @@ export default function Home() {
           >
             Upcoming Events
           </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* Janamashtami Card */}
             <motion.div
-              className="bg-white rounded-2xl p-0 flex flex-row items-stretch shadow-lg border border-gray-200 overflow-hidden"
+              className="bg-white rounded-2xl p-0 flex flex-col sm:flex-row items-stretch shadow-lg border border-gray-200 overflow-hidden"
               initial={{ opacity: 0, x: -40 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, amount: 0.5 }}
               transition={{ duration: 0.7 }}
             >
-              <div className="flex-1 flex flex-col justify-center p-8">
-                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent">
+              <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 lg:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent">
                   Janamashtami
                 </h3>
-                <div className="text-black mb-2"><span className="font-semibold">Date:</span> 26 August 2024</div>
-                <div className="text-black mb-2"><span className="font-semibold">Time:</span> 6:00 PM onwards</div>
-                <div className="text-black mb-6"><span className="font-semibold">Venue:</span> ISKCON Temple, New Delhi</div>
+                <div className="text-black mb-2 text-sm sm:text-base"><span className="font-semibold">Date:</span> 26 August 2024</div>
+                <div className="text-black mb-2 text-sm sm:text-base"><span className="font-semibold">Time:</span> 6:00 PM onwards</div>
+                <div className="text-black mb-4 sm:mb-6 text-sm sm:text-base"><span className="font-semibold">Venue:</span> ISKCON Temple, New Delhi</div>
                 <Link href="/register-janamashtami">
                   <motion.button
                     className="px-8 py-3 bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 text-white rounded-full font-medium hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
@@ -458,7 +448,7 @@ export default function Home() {
                   </motion.button>
                 </Link>
               </div>
-              <div className="w-64 min-h-[12rem] h-full relative flex-shrink-0">
+              <div className="w-full sm:w-64 h-48 sm:h-auto min-h-[12rem] relative flex-shrink-0">
                 <Image
                   src="https://drive.google.com/uc?export=view&id=1IrRsPdch3uEZAD6yXhVGtxVMXqEL8IY-"
                   alt="Janamashtami Event"
@@ -471,19 +461,19 @@ export default function Home() {
             </motion.div>
             {/* Jagannath Rath Yatra Card */}
             <motion.div
-              className="bg-white rounded-2xl p-0 flex flex-row items-stretch shadow-lg border border-gray-200 overflow-hidden"
+              className="bg-white rounded-2xl p-0 flex flex-col sm:flex-row items-stretch shadow-lg border border-gray-200 overflow-hidden"
               initial={{ opacity: 0, x: 40 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, amount: 0.5 }}
               transition={{ duration: 0.7 }}
             >
-              <div className="flex-1 flex flex-col justify-center p-8">
-                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent">
+              <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 lg:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent">
                   Jagannath Rath Yatra
                 </h3>
-                <div className="text-black mb-2"><span className="font-semibold">Date:</span> 7 July 2024</div>
-                <div className="text-black mb-2"><span className="font-semibold">Time:</span> 3:00 PM onwards</div>
-                <div className="text-black mb-6"><span className="font-semibold">Venue:</span> Connaught Place, New Delhi</div>
+                <div className="text-black mb-2 text-sm sm:text-base"><span className="font-semibold">Date:</span> 7 July 2024</div>
+                <div className="text-black mb-2 text-sm sm:text-base"><span className="font-semibold">Time:</span> 3:00 PM onwards</div>
+                <div className="text-black mb-4 sm:mb-6 text-sm sm:text-base"><span className="font-semibold">Venue:</span> Connaught Place, New Delhi</div>
                 <Link href="/register-rathyatra">
                   <motion.button
                     className="px-8 py-3 bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 text-white rounded-full font-medium hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
@@ -494,7 +484,7 @@ export default function Home() {
                   </motion.button>
                 </Link>
               </div>
-              <div className="w-64 min-h-[12rem] h-full relative flex-shrink-0">
+              <div className="w-full sm:w-64 h-48 sm:h-auto min-h-[12rem] relative flex-shrink-0">
                 <Image
                   src="https://drive.google.com/uc?export=view&id=1Rlw9vIAso86WY19eHsZBRbMZM-1MLG6f"
                   alt="Jagannath Rath Yatra Event"
@@ -509,20 +499,20 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <div className="py-20 sm:py-32">
+        <div className="py-16 sm:py-24 lg:py-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent">
                   Athāto brahma jijñāsā
                 </span>
               </h2>
-              <p className="text-xl sm:text-2xl text-gray-300 max-w-2xl mx-auto italic">
+              <p className="text-lg sm:text-xl lg:text-2xl text-gray-300 max-w-2xl mx-auto italic">
                 Now is the time to inquire about the <span className="underline font-bold">Absolute Truth</span>
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
               {features.map((feature, index) => (
                 <motion.div
                   key={feature.title}
@@ -533,7 +523,7 @@ export default function Home() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
                   <Link href={feature.link}>
-                    <div className="relative h-[450px] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl
+                    <div className="relative h-[300px] sm:h-[400px] lg:h-[450px] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl
                       transition-all duration-300 transform hover:-translate-y-1">
                       <Image
                         src={feature.image}
@@ -542,8 +532,8 @@ export default function Home() {
                         className="transition-transform duration-500 group-hover:scale-110 object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-8 flex items-center justify-center">
-                        <h3 className="text-4xl sm:text-5xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+                        <h3 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                           {feature.title === 'Soul Walks' || feature.title === 'Divya Vidya' ? (
                             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                               {feature.title}
@@ -562,12 +552,12 @@ export default function Home() {
         </div>
 
         {/* Volunteer Section */}
-        <div className="py-20 sm:py-32 border-t border-white/10">
+        <div className="py-16 sm:py-24 lg:py-32 border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
               {/* Left Content - Image */}
               <motion.div
-                className="relative h-80 w-80 lg:h-[500px] lg:w-full rounded-2xl overflow-hidden mx-auto"
+                className="relative h-64 sm:h-80 w-full max-w-80 lg:h-[500px] rounded-2xl overflow-hidden mx-auto"
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
@@ -590,10 +580,10 @@ export default function Home() {
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.7 }}
               >
-                <h2 className="text-4xl sm:text-5xl font-bold mb-6 text-white">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-white">
                   Want to <span className="bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent">volunteer</span>?
                 </h2>
-                <p className="text-xl sm:text-2xl text-gray-300 max-w-2xl mb-12">
+                <p className="text-lg sm:text-xl lg:text-2xl text-gray-300 max-w-2xl mb-8 sm:mb-12">
                   Passionate about photography, music, or creativity? Join us in serving the Spiritual Club through your talents!
                 </p>
                 <motion.button
@@ -613,28 +603,28 @@ export default function Home() {
         </div>
 
         {/* Testimonial Section */}
-        <div className="py-20 sm:py-32 border-t border-white/10">
+        <div className="py-16 sm:py-24 lg:py-32 border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 bg-clip-text text-transparent">
                   Testimonials
                 </span>
               </h2>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto">Hear from our amazing volunteers and participants</p>
+              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">Hear from our amazing volunteers and participants</p>
             </div>
             
             {/* Single Testimonial Card */}
             <motion.div
-              className="bg-white/10 rounded-2xl p-8 lg:p-12 shadow-lg max-w-4xl mx-auto"
+              className="bg-white/10 rounded-2xl p-6 sm:p-8 lg:p-12 shadow-lg max-w-4xl mx-auto"
               initial={{ opacity: 0, x: -40 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="flex flex-col lg:flex-row gap-8 items-start">
+              <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 items-start">
                 {/* Image and Name Section */}
-                <div className="flex flex-col items-center lg:items-start min-w-[120px]">
+                <div className="flex flex-col items-center lg:items-start min-w-[100px] sm:min-w-[120px]">
                   <motion.img 
                     key={currentTestimonial}
                     src={testimonials[currentTestimonial].image} 
@@ -660,7 +650,7 @@ export default function Home() {
                 <div className="flex-1">
                   <motion.blockquote 
                     key={`quote-${currentTestimonial}`}
-                    className="text-3xl lg:text-5xl text-gray-100 italic leading-relaxed"
+                    className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl text-gray-100 italic leading-relaxed"
                     initial={{ opacity: 0, x: -40 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 }}
@@ -691,18 +681,18 @@ export default function Home() {
         </div>
 
         {/* Gallery Section */}
-        <div className="py-20 sm:py-32 border-t border-white/10">
+        <div className="py-16 sm:py-24 lg:py-32 border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
               <motion.div
-                className="grid grid-cols-2 gap-4"
+                className="grid grid-cols-2 gap-3 sm:gap-4"
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.7 }}
               >
                 <Link href="/gallery">
-                  <div className="relative h-[300px] rounded-2xl overflow-hidden cursor-pointer">
+                  <div className="relative h-[200px] sm:h-[250px] lg:h-[300px] rounded-2xl overflow-hidden cursor-pointer">
                     <Image
                       src="https://drive.google.com/uc?export=view&id=1h5cTFq63rRMtrptxPpWKH7XPUty35geS"
                       alt="Spiritual Gathering"
@@ -712,7 +702,7 @@ export default function Home() {
                   </div>
                 </Link>
                 <Link href="/gallery">
-                  <div className="relative h-[300px] rounded-2xl overflow-hidden cursor-pointer">
+                  <div className="relative h-[200px] sm:h-[250px] lg:h-[300px] rounded-2xl overflow-hidden cursor-pointer">
                     <Image
                       src="https://drive.google.com/uc?export=view&id=1CeCcEI1Avgrsl3gqT4jVL9gXlsphFFex"
                       alt="Meditation"
@@ -722,7 +712,7 @@ export default function Home() {
                   </div>
                 </Link>
                 <Link href="/gallery">
-                  <div className="relative h-[300px] rounded-2xl overflow-hidden cursor-pointer">
+                  <div className="relative h-[200px] sm:h-[250px] lg:h-[300px] rounded-2xl overflow-hidden cursor-pointer">
                     <Image
                       src="https://drive.google.com/uc?export=view&id=1noVzgop2JkG5x_2r-Vk7S88johb1Epjl"
                       alt="Devotee Association"
@@ -732,7 +722,7 @@ export default function Home() {
                   </div>
                 </Link>
                 <Link href="/gallery">
-                  <div className="relative h-[300px] rounded-2xl overflow-hidden cursor-pointer">
+                  <div className="relative h-[200px] sm:h-[250px] lg:h-[300px] rounded-2xl overflow-hidden cursor-pointer">
                     <Image
                       src="https://drive.google.com/uc?export=view&id=1lr9GJ9b1F-Ngl5roTDw7eWmcAxHyL8EE"
                       alt="Spiritual Practice"
@@ -749,10 +739,10 @@ export default function Home() {
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.7 }}
               >
-                <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6">
                   Our Gallery
                 </h2>
-                <p className="text-lg text-gray-300 mb-8">
+                <p className="text-base sm:text-lg text-gray-300 mb-6 sm:mb-8">
                   Take a look at our gallery, we have photos of our trips, events and activities throughout the years!!
                 </p>
                 <div className="flex justify-center">
@@ -775,9 +765,9 @@ export default function Home() {
 
       {/* Modal for Volunteer Sign Up */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)}>
-          <div className={`bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 transition-all duration-300 ${modalStep === 'form' ? 'max-w-lg' : 'max-w-md'}`} onClick={(e) => e.stopPropagation()}>
-            <button className="absolute top-2 right-4 text-2xl text-gray-400 hover:text-gray-600" onClick={() => setShowModal(false)}>&times;</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowModal(false)}>
+          <div className={`bg-white rounded-2xl shadow-xl p-4 sm:p-6 w-full max-w-md mx-auto transition-all duration-300 ${modalStep === 'form' ? 'max-w-lg' : 'max-w-md'}`} onClick={(e) => e.stopPropagation()}>
+            <button className="absolute top-2 right-4 text-xl sm:text-2xl text-gray-400 hover:text-gray-600" onClick={() => setShowModal(false)}>&times;</button>
             {modalStep === 'options' && (
               <div className="flex flex-col items-center gap-6">
                 <h2 className="text-2xl font-bold mb-2">Volunteer Sign Up</h2>

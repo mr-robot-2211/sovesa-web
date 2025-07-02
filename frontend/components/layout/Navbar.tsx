@@ -12,6 +12,7 @@ import Image from "next/image";
 const Navbar = ()=>{
   const { data: session } = useSession();
   const isLoggedIn=!!session;
+  const isSadhaka = session?.user?.is_sadhaka;
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
