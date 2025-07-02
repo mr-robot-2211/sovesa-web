@@ -47,6 +47,7 @@ export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState<'options' | 'form'>('options');
   const [form, setForm] = useState({
+    name: '',
     email: userEmail,
     phone: userPhone,
     skill: "",
@@ -88,36 +89,32 @@ export default function Home() {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const teableApiKey = "teable_accX1rfXi2JYIQ1BUTu_N89wltHtHeoRWzZZrnNnXAmAic4MXWaxunPNCEZn65s=";
-      const tableId = "tblYuqPNmfYm5iGAdvE";
-      // Map form fields to Teable columns
-      const payload = {
-        records: [
-          {
-            fields: {
-              email: form.email,
-              phone: form.phone,
-              volunteer: `${form.skill}${form.description ? ': ' + form.description : ''}`,
-            }
-          }
-        ]
-      };
-      const response = await fetch(`https://api.teable.io/v1/table/${tableId}/records`, {
+      const response = await fetch('/api/volunteer', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${teableApiKey}`,
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          skill: form.skill,
+          description: form.description,
+        }),
       });
       if (response.ok) {
-        // Handle success (e.g., show a success message)
         alert('Volunteer form submitted successfully!');
         setShowModal(false);
       } else {
-        // Handle error
-        alert('Failed to submit volunteer form');
-        console.error('Failed to submit volunteer form');
+        let errorMsg = 'Unknown error';
+        try {
+          const data = await response.json();
+          errorMsg = data.error || errorMsg;
+        } catch {
+          try {
+            errorMsg = await response.text();
+          } catch {}
+        }
+        alert('Failed to submit volunteer form: ' + errorMsg);
+        console.error('Failed to submit volunteer form', errorMsg);
       }
     } catch (error) {
       alert('An error occurred while submitting the form.');
@@ -782,6 +779,15 @@ export default function Home() {
             {modalStep === 'form' && (
               <form className="space-y-4" onSubmit={handleFormSubmit}>
                 <h2 className="text-2xl font-bold mb-2">Volunteer via Email</h2>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleFormChange}
+                  placeholder="Your Name"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-100 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  required
+                />
                 <input
                   type="email"
                   name="email"
