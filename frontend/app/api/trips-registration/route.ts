@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
     // Parse FormData
     const formData = await req.formData();
     
-    const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const phone = formData.get('phone') as string;
     const student_id = formData.get('student_id') as string;
@@ -36,11 +35,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing field: trips' }, { status: 400 });
     }
 
-    // Handle file upload if present
-    let fileUrl = '';
-    if (paymentFile) {
-      fileUrl = `Payment screenshot uploaded: ${paymentFile.name}`;
-    }
+    // // Handle file upload if present
+    // let fileUrl = '';
+    // if (paymentFile) {
+    //   fileUrl = `Payment screenshot uploaded: ${paymentFile.name}`;
+    // }
 
     // Update user's trips field in users table
     try {

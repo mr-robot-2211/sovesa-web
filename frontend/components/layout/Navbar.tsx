@@ -46,7 +46,6 @@ const Navbar = ()=>{
     { name: "Soul Walks", path: "/trips" },
     { name: "DivyaVidya", path: "/courses" },
     { name: "Divine Bazaar", path: "/bazaar" },
-    { name: "AboutUs", path: "/about" },
   ];
 
   const renderMenuItems = (mobile: boolean = false) => (

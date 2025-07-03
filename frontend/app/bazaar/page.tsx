@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 
 interface Product {
@@ -18,15 +17,6 @@ interface Product {
   discount?: number;
   quantity: number;
 }
-
-const CATEGORIES = [
-  { key: "all", name: "All Items", icon: "🛍️" },
-  { key: "clothing", name: "Clothing", icon: "👘" },
-  { key: "beads", name: "Chanting Beads", icon: "📿" },
-  { key: "books", name: "Sacred Books", icon: "📚" },
-  { key: "decor", name: "Home Decor", icon: "🏺" },
-  { key: "incense", name: "Incense & Oils", icon: "🕉️" },
-];
 
 const PRODUCTS: Product[] = [
   {
@@ -205,10 +195,14 @@ const testimonials = [
 ];
 
 export default function DivineBazaar() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedCategory, setSelectedCategory] = useState("all");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [searchQuery, setSearchQuery] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sortBy, setSortBy] = useState("popular");
   const [cart, setCart] = useState<Record<number, { product: Product; quantity: number }>>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [quantities, setQuantities] = useState<Record<number, number>>(() => PRODUCTS.reduce((acc, p) => ({ ...acc, [p.id]: 1 }), {}));
   const [showCart, setShowCart] = useState(false);

@@ -22,7 +22,6 @@ export default function Home() {
   });
 
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   const features: Feature[] = [
     {
@@ -40,9 +39,9 @@ export default function Home() {
   ];
 
   const { data: session } = useSession();
-  const isLoggedIn = !!session;
   const userEmail = session?.user?.email || "";
-  const [userPhone, setUserPhone] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [userPhone, _] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState<'options' | 'form'>('options');
@@ -203,7 +202,7 @@ export default function Home() {
               >
                 This is not your typical summer program!
                 <br />
-                This is an invitation for those who feel there's more to life than just data, degrees, and deadlines.
+                This is an invitation for those who feel there&apos;s more to life than just data, degrees, and deadlines.
               </motion.p>
               {/* Details and Buttons (always column) */}
               <div className="flex flex-col gap-4 w-full items-center justify-center">
@@ -339,7 +338,7 @@ export default function Home() {
               >
                 This is not your typical summer program!
                 <br />
-                This is an invitation for those who feel there's more to life than just data, degrees, and deadlines.
+                This is an invitation for those who feel there&apos;s more to life than just data, degrees, and deadlines.
               </motion.p>
               {/* Details and Buttons (always column) */}
               <div className="flex flex-col gap-4 w-full items-center justify-center">
@@ -665,7 +664,7 @@ export default function Home() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 }}
                   >
-                    "{testimonials[currentTestimonial].quote}"
+                    &quot;{testimonials[currentTestimonial].quote}&quot;
                   </motion.blockquote>
                 </div>
               </div>
@@ -781,7 +780,7 @@ export default function Home() {
             {modalStep === 'options' && (
               <div className="flex flex-col items-center gap-6">
                 <h2 className="text-2xl font-bold mb-2">Volunteer Sign Up</h2>
-                <p className="text-gray-600 mb-4">Choose how you'd like to connect:</p>
+                <p className="text-gray-600 mb-4">Choose how you&apos;d like to connect:</p>
                 <div className="flex flex-col gap-4 w-full">
                   <button onClick={() => handleOptionClick('whatsapp')} className="w-full px-6 py-3 bg-green-500 text-white rounded-full font-medium hover:bg-green-600 transition">WhatsApp</button>
                   <button onClick={() => handleOptionClick('instagram')} className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-yellow-500 text-white rounded-full font-medium hover:opacity-90 transition">Instagram</button>

@@ -123,30 +123,6 @@ class ApiService {
     return this.fetchApi(`/users/${encodeURIComponent(email)}`);
   }
 
-  // Check if user is registered for a specific course
-  async isUserRegisteredForCourse(email: string, courseId: string): Promise<ApiResponse<boolean>> {
-    if (!email || !courseId) {
-      return {
-        success: false,
-        error: 'Email and courseId are required',
-      };
-    }
-
-    return this.fetchApi(`/users/${encodeURIComponent(email)}/check-course/${encodeURIComponent(courseId)}`);
-  }
-
-  // Check if user is registered for a specific trip
-  async isUserRegisteredForTrip(email: string, tripId: string): Promise<ApiResponse<boolean>> {
-    if (!email || !tripId) {
-      return {
-        success: false,
-        error: 'Email and tripId are required',
-      };
-    }
-
-    return this.fetchApi(`/users/${encodeURIComponent(email)}/check-trip/${encodeURIComponent(tripId)}`);
-  }
-
   // Update User Data
   async updateUser(userData: UserUpdateData): Promise<ApiResponse> {
     if (!userData.email) {
@@ -218,6 +194,39 @@ class ApiService {
   // Get Trips
   async getTrips(): Promise<ApiResponse> {
     return this.fetchApi('/trips');
+  }
+
+  // Check if user is registered for a course
+  async isUserRegisteredForCourse(email: string, courseId: string): Promise<ApiResponse<boolean>> {
+    if (!email || !courseId) {
+      return {
+        success: false,
+        error: 'Email and courseId are required',
+      };
+    }
+
+    try {
+      const userProfile = await this.getUserProfile(email);
+      if (!userProfile.success || !userProfile.data) {
+        return {
+          success: false,
+          error: 'Failed to fetch user profile',
+        };
+      }
+
+      const userData = userProfile.data as UserProfileData;
+      const isRegistered = userData.courses?.includes(courseId) || false;
+
+      return {
+        success: true,
+        data: isRegistered,
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to check registration status',
+      };
+    }
   }
 }
 
