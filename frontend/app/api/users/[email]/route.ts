@@ -37,8 +37,6 @@ export async function GET(
     Object.entries(params_filter).forEach(([key, value]) => {
       url.searchParams.append(key, value);
     });
-
-    console.log("Teable GET URL:", url.toString());
     
     const response = await fetch(url, {
       method: "GET",
@@ -49,9 +47,10 @@ export async function GET(
     });
 
     const result = await response.json();
-    console.log("Teable response:", JSON.stringify(result, null, 2));
+    // console.log("Teable response:", JSON.stringify(result, null, 2));
     
     if (response.ok && result.records && result.records.length > 0) {
+      // console.log(result.records);
       return NextResponse.json({ 
         success: true,
         user: result.records[0]

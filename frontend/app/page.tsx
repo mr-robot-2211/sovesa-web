@@ -141,7 +141,7 @@ export default function Page() {
           <div className="text-center py-16">
             <div className="text-6xl mb-4">📢</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">No Announcements Today</h2>
-            <p className="text-gray-600">Check back later for today's spiritual message</p>
+            <p className="text-gray-600">Check back later for today&apos;s spiritual message</p>
           </div>
         ) : (
           <div className="space-y-6">

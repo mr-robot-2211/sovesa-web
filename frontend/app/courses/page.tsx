@@ -5,6 +5,17 @@ import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { useSession, signIn } from "next-auth/react";
 import { apiService } from "@/lib/api";
 
+interface UserFields {
+  studentId?: string;
+  phone?: string;
+}
+
+interface UserData {
+  user: {
+    fields?: UserFields;
+  };
+}
+
 interface PaymentFormData {
     email: string;
     name: string;
@@ -217,7 +228,6 @@ export default function CoursesPage() {
     const [showLoginDialog, setShowLoginDialog] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
-    const [registrationStatus, setRegistrationStatus] = useState<{[key: string]: boolean}>({});
     
     // Refs and scroll hooks
     const containerRef = useRef<HTMLDivElement>(null);
@@ -255,19 +265,12 @@ export default function CoursesPage() {
         }
     }, [session.data]);
 
-    // Check registration status when courses are loaded and user is logged in
-    useEffect(() => {
-        if (session.data?.user?.email && courses.length > 0) {
-            checkRegistrationStatus();
-        }
-    }, [session.data?.user?.email, courses]);
-
     const loadUserData = async () => {
         try {
             const result = await apiService.getUserByEmail(session.data?.user?.email || "");
             
             if (result.success && result.data && typeof result.data === 'object' && 'user' in result.data) {
-                const user = (result.data as { user: any }).user;
+                const user = (result.data as UserData).user;
                 setFormData(prev => ({
                     ...prev,
                     email: session.data?.user?.email || "",
@@ -298,34 +301,6 @@ export default function CoursesPage() {
         }
     };
 
-    const checkRegistrationStatus = async () => {
-        if (!session.data?.user?.email || courses.length === 0) return;
-        
-        const status: {[key: string]: boolean} = {};
-        
-        // Use Promise.all for efficient parallel API calls
-        const promises = courses.map(async (course) => {
-            try {
-                const result = await apiService.isUserRegisteredForCourse(
-                    session.data!.user!.email!,
-                    course.fields["trip-title"]
-                );
-                return { courseId: course.id, isRegistered: result.success ? (result.data || false) : false };
-            } catch (error) {
-                console.error(`Error checking registration for course ${course.id}:`, error);
-                return { courseId: course.id, isRegistered: false };
-            }
-        });
-        
-        const results = await Promise.all(promises);
-        
-        results.forEach(({ courseId, isRegistered }) => {
-            status[courseId] = isRegistered;
-        });
-        
-        setRegistrationStatus(status);
-    };
-
     const handleCardExpand = (tripId: string) => {
         setExpandedCard(expandedCard === tripId ? null : tripId);
     };
@@ -336,11 +311,6 @@ export default function CoursesPage() {
       setShowLoginDialog(true);
       return;
     }
-        
-        // Check if user is already registered for this course
-        if (registrationStatus[trip.id]) {
-            return; // Don't allow registration if already registered
-        }
         
         setSelectedTrip(trip);
         setShowPaymentModal(true);
@@ -531,26 +501,21 @@ export default function CoursesPage() {
                 </p>
                 
                 <motion.button
-                    whileHover={{ scale: expandedCard === trip.id && !registrationStatus[trip.id] ? 1.05 : 1 }}
-                    whileTap={{ scale: expandedCard === trip.id && !registrationStatus[trip.id] ? 0.95 : 1 }}
                     onClick={() => {
                         if (expandedCard === trip.id) {
-                            if (!registrationStatus[trip.id]) {
-                                handleJoinNow(trip);
-                            }
+                            handleJoinNow(trip);
                         } else {
                             handleCardExpand(trip.id);
                         }
                     }}
-                    disabled={expandedCard === trip.id && registrationStatus[trip.id]}
                     className={`px-6 sm:px-8 py-3 font-medium rounded-full transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit ${
-                        expandedCard === trip.id && registrationStatus[trip.id]
+                        expandedCard === trip.id
                             ? 'bg-gray-400 text-white cursor-not-allowed'
                             : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
                     }`}
                 >
                     {expandedCard === trip.id 
-                        ? (registrationStatus[trip.id] ? "Already Registered" : "Join Now!")
+                        ? ("Join Now!")
                         : "View More"
                     }
                 </motion.button>
