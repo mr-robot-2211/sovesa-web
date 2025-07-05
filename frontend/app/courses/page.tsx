@@ -508,16 +508,9 @@ export default function CoursesPage() {
                             handleCardExpand(trip.id);
                         }
                     }}
-                    className={`px-6 sm:px-8 py-3 font-medium rounded-full transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit ${
-                        expandedCard === trip.id
-                            ? 'bg-gray-400 text-white cursor-not-allowed'
-                            : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
-                    }`}
+                    className="px-6 sm:px-8 py-3 font-medium rounded-full transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
-                    {expandedCard === trip.id 
-                        ? ("Join Now!")
-                        : "View More"
-                    }
+                    {expandedCard === trip.id ? "Join Now!" : "View More"}
                 </motion.button>
             </motion.div>
         </motion.div>

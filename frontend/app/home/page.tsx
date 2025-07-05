@@ -495,7 +495,7 @@ export default function Home() {
                 <div className="text-black mb-2 text-sm sm:text-base"><span className="font-semibold">Date:</span> 26 August 2024</div>
                 <div className="text-black mb-2 text-sm sm:text-base"><span className="font-semibold">Time:</span> 6:00 PM onwards</div>
                 <div className="text-black mb-4 sm:mb-6 text-sm sm:text-base"><span className="font-semibold">Venue:</span> ISKCON Temple, New Delhi</div>
-                <Link href="/register-janamashtami">
+                <Link href="/choose">
                   <motion.button
                     className="px-8 py-3 bg-gradient-to-r from-blue-600 via-purple-500 to-purple-600 text-white rounded-full font-medium hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
                     whileHover={{ scale: 1.05 }}

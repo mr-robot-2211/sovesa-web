@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
+  console.log("✅ /api/users POST route triggered");
   const TEABLE_API_KEY = process.env.TEABLE_API_KEY;
   const TEABLE_USERS_TABLE_ID = process.env.TEABLE_USERS_TABLE_ID;
   
