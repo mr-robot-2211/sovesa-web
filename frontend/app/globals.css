@@ -6,6 +6,39 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 255, 255, 255;
   --background-end-rgb: 249, 250, 251;
+
+  /* Font Sizes from Home Page */
+  --font-size-xs: 0.75rem;      /* 12px, for small text */
+  --font-size-sm: 0.875rem;     /* 14px, for roles, small labels */
+  --font-size-base: 1rem;       /* 16px, default */
+  --font-size-lg: 1.125rem;     /* 18px, for buttons, some text */
+  --font-size-xl: 1.25rem;      /* 20px, for modal titles */
+  --font-size-2xl: 1.5rem;      /* 24px, for section subtitles */
+  --font-size-3xl: 1.875rem;    /* 30px, for testimonials */
+  --font-size-4xl: 2.25rem;     /* 36px, for section titles */
+  --font-size-5xl: 3rem;        /* 48px, for main hero */
+  --font-size-6xl: 3.75rem;     /* 60px, for main hero (sm:text-7xl) */
+  --font-size-7xl: 4.5rem;      /* 72px, for main hero (md:text-8xl) */
+
+  /* Colors from Home Page */
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-500: #3b82f6;
+  --color-blue-300: #93c5fd;
+  --color-purple-500: #a21caf;
+  --color-purple-600: #9333ea;
+  --color-pink-500: #ec4899;
+  --color-yellow-500: #eab308;
+  --color-gray-100: #f3f4f6;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-600: #4b5563;
+  --color-gray-900: #111827;
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  /* Add more as needed from the home page */
 }
 
 body {
@@ -102,6 +135,21 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom class for hero mobile row layout */
+@media (max-width: 1024px) {
+  .hero-mobile-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    width: 100%;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .hero-mobile-row > .hero-image, .hero-mobile-row > .hero-details {
+    width: 50%;
   }
 }
 

@@ -1,254 +1,312 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Janmashtami Event Management System
 
-## Getting Started
+A comprehensive event management platform built with Next.js 14 for organizing and managing the Janmashtami celebration. The system supports participant registration, volunteer management, QR code scanning, and real-time event tracking.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Core Functionality
+- **User Authentication**: Google OAuth integration with NextAuth.js
+- **Participant Registration**: Event registration with phone number validation
+- **Volunteer Management**: Volunteer applications and duty assignments
+- **QR Code Scanning**: Real-time attendance tracking and gift distribution
+- **Course Registration**: DivyaVidya course enrollment system
+- **Trip Registration**: Soul walks and spiritual journey registrations
+- **Real-time Dashboard**: Live participant and volunteer statistics
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Technical Features
+- **Modern Stack**: Next.js 14 with App Router, TypeScript, Tailwind CSS
+- **Database**: Supabase for data storage and real-time features
+- **Authentication**: NextAuth.js with Google OAuth
+- **Animations**: Framer Motion for smooth UI interactions
+- **QR Code**: QR code generation and scanning capabilities
+- **Responsive Design**: Mobile-first responsive layout
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📋 Prerequisites
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Before running this project, ensure you have:
 
-## Learn More
+- Node.js 18+ installed
+- npm, yarn, or pnpm package manager
+- Google Cloud Console account (for OAuth)
+- Supabase account (for database)
 
-To learn more about Next.js, take a look at the following resources:
+## 🛠️ Installation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd frontend
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-# Frontend Documentation
-
-## Architecture Overview
-
-The frontend is built using Next.js 14 with the App Router architecture. The application follows a component-based structure with a focus on reusability and maintainability.
-
-## Key Components
-
-### 1. Course Listing Page (`app/courses/page.tsx`)
-The main course listing page that displays all available courses in a responsive grid layout.
-
-#### Features:
-- Responsive grid layout
-- Animated course cards using Framer Motion
-- Expandable course details
-- Join Now functionality with payment integration
-
-#### State Management:
-```typescript
-interface FormData {
-    email: string;
-    name: string;
-    id: string;
-    phone: string;
-}
-
-interface SubmissionStatus {
-    loading: boolean;
-    error: string | null;
-    success: boolean;
-}
-```
-
-### 2. Payment Modal Component
-A two-step modal for course registration and payment.
-
-#### Steps:
-1. Personal Details Collection
-   - Email
-   - Name
-   - ID
-   - Phone Number
-
-2. Payment Details
-   - QR Code Display
-   - Payment Screenshot Upload
-
-#### Props:
-```typescript
-interface PaymentModalProps {
-    formStep: number;
-    formData: PaymentFormData;
-    selectedCourse: any;
-    onClose: () => void;
-    onSubmit: (e: React.FormEvent) => void;
-    onFormDataChange: (field: keyof PaymentFormData, value: string) => void;
-    onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-```
-
-## API Integration
-
-### Course Data Fetching
-```typescript
-useEffect(() => {
-    fetch("http://localhost:8000/api/courses/")
-        .then((res) => {
-            if (!res.ok) {
-                throw new Error(`HTTP error! Status: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then((data) => {
-            setCourses(data.records || []);
-            setLoading(false);
-        })
-        .catch((err) => {
-            setError(err.message);
-            setLoading(false);
-        });
-}, []);
-```
-
-### Course Registration
-```typescript
-const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // ... form validation and submission logic
-    const response = await fetch('http://127.0.0.1:8000/api/courses-registration/', {
-        method: 'POST',
-        headers: {
-            "Accept": "application/json",
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-    });
-    // ... handle response
-};
-```
-
-## Styling
-
-The application uses Tailwind CSS for styling with custom configurations:
-
-### Tailwind Configuration
-```javascript
-// tailwind.config.js
-module.exports = {
-    content: [
-        './app/**/*.{js,ts,jsx,tsx,mdx}',
-        './components/**/*.{js,ts,jsx,tsx,mdx}',
-    ],
-    theme: {
-        extend: {
-            // Custom theme extensions
-        },
-    },
-    plugins: [],
-}
-```
-
-## Animation
-
-Framer Motion is used for animations throughout the application:
-
-### Loading Animation
-```typescript
-<motion.div
-    animate={{ rotate: 360 }}
-    transition={{
-        duration: 1.5,
-        repeat: Infinity,
-        ease: "linear"
-    }}
-/>
-```
-
-### Page Transitions
-```typescript
-<motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.5 }}
-/>
-```
-
-## Best Practices
-
-1. **Component Organization**
-   - Keep components small and focused
-   - Use TypeScript interfaces for props
-   - Implement proper error boundaries
-
-2. **State Management**
-   - Use React hooks for local state
-   - Implement proper loading and error states
-   - Handle form state efficiently
-
-3. **Performance**
-   - Implement proper image optimization
-   - Use proper loading states
-   - Implement lazy loading where appropriate
-
-4. **Accessibility**
-   - Use semantic HTML
-   - Implement proper ARIA labels
-   - Ensure keyboard navigation
-
-## Development Workflow
-
-1. **Setting Up Development Environment**
+2. **Install dependencies**
    ```bash
    npm install
+   # or
+   yarn install
+   # or
+   pnpm install
+   ```
+
+3. **Set up environment variables**
+   Create a `.env.local` file in the root directory:
+   ```bash
+   # NextAuth Configuration
+   NEXTAUTH_SECRET=your-nextauth-secret-key-here
+   NEXTAUTH_URL=http://localhost:3000
+
+   # Google OAuth Provider
+   GOOGLE_CLIENT_ID=your-google-client-id-here
+   GOOGLE_CLIENT_SECRET=your-google-client-secret-here
+
+   # Supabase Configuration
+   NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+   SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+
+   # Teable Configuration (for external data)
+   TEABLE_API_KEY=your-teable-api-key
+   TEABLE_USERS_TABLE_ID=your-teable-users-table-id
+   ```
+
+4. **Run the development server**
+   ```bash
    npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
    ```
 
-2. **Building for Production**
-   ```bash
-   npm run build
-   npm start
-   ```
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-3. **Code Quality**
-   - Use ESLint for code linting
-   - Follow TypeScript best practices
-   - Write meaningful component documentation
+## 🔧 Configuration
 
-## Testing
+### Google OAuth Setup
 
-1. **Component Testing**
-   - Use Jest and React Testing Library
-   - Test user interactions
-   - Test error states
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google+ API
+4. Navigate to "Credentials" → "Create Credentials" → "OAuth 2.0 Client ID"
+5. Set the authorized redirect URI to: `http://localhost:3000/api/auth/callback/google`
+6. Copy the Client ID and Client Secret to your `.env.local` file
 
-2. **Integration Testing**
-   - Test API integration
-   - Test form submissions
-   - Test navigation flows
+### Supabase Database Setup
 
-## Deployment
+1. Create a new Supabase project
+2. Set up the following tables:
 
-1. **Build Process**
-   ```bash
-   npm run build
-   ```
+#### Participants Table
+```sql
+CREATE TABLE participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  phone TEXT NOT NULL,
+  age TEXT,
+  address TEXT,
+  emergency_contact TEXT,
+  dietary_restrictions TEXT,
+  special_needs TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
 
-2. **Environment Variables**
-   Create a `.env.local` file:
-   ```
-   NEXT_PUBLIC_API_URL=http://localhost:8000
-   ```
+#### Volunteers Table
+```sql
+CREATE TABLE volunteers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  phone TEXT,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
 
-3. **Production Considerations**
-   - Enable proper caching
-   - Implement error tracking
-   - Set up proper monitoring
+#### Volunteer Applications Table
+```sql
+CREATE TABLE volunteer_applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  duty_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+## 📁 Project Structure
+
+```
+frontend/
+├── app/                          # Next.js App Router pages
+│   ├── api/                      # API routes
+│   │   ├── participants/         # Participant management
+│   │   ├── volunteers/           # Volunteer management
+│   │   ├── volunteer-applications/ # Volunteer applications
+│   │   ├── scan/                # QR code scanning
+│   │   └── ...                  # Other API endpoints
+│   ├── volunteer/                # Volunteer-specific pages
+│   │   ├── dashboard/           # Volunteer dashboard
+│   │   ├── scanning/            # QR code scanning interface
+│   │   └── qr-generator/        # QR code generation tool
+│   ├── courses/                 # Course registration
+│   ├── trips/                   # Trip registration
+│   └── ...                      # Other pages
+├── components/                   # Reusable React components
+│   ├── layout/                  # Layout components
+│   ├── Modal.tsx               # Modal component
+│   └── QRScanner.tsx           # QR code scanner
+├── lib/                         # Utility libraries
+│   ├── api.ts                  # API service functions
+│   └── supabase.ts             # Supabase client
+├── types/                       # TypeScript type definitions
+└── public/                      # Static assets
+```
+
+## 🔌 API Endpoints
+
+### Participants
+- `GET /api/participants` - Get all participants
+- `POST /api/participants` - Create new participant
+
+### Volunteers
+- `GET /api/volunteers` - Get all volunteers
+- `POST /api/volunteers` - Create new volunteer
+- `GET /api/volunteers/me` - Check if current user is volunteer
+
+### Volunteer Applications
+- `POST /api/volunteer-applications` - Submit volunteer application
+
+### Scanning
+- `POST /api/scan` - Process QR code scan
+- `GET /api/scan` - Get scanning statistics
+
+## 🎨 UI Components
+
+### Core Components
+- **Navbar**: Navigation with authentication status
+- **Modal**: Reusable modal component with animations
+- **QRScanner**: QR code scanning interface
+- **QRCodeSVG**: QR code generation component
+
+### Pages
+- **Dashboard**: User profile and activity overview
+- **Events**: Event registration page
+- **Volunteer Dashboard**: Volunteer-specific interface
+- **Scanning Page**: Real-time QR code scanning
+- **Success Page**: Registration confirmation with QR codes
+
+## 🔐 Authentication Flow
+
+1. User clicks "Login with Google"
+2. Google OAuth flow completes
+3. NextAuth.js creates session
+4. User data is stored in database
+5. User is redirected to appropriate page
+
+## 📱 Mobile Responsiveness
+
+The application is built with a mobile-first approach using Tailwind CSS:
+- Responsive grid layouts
+- Touch-friendly interfaces
+- Optimized for mobile scanning
+- Adaptive navigation
+
+## 🚀 Deployment
+
+### Vercel Deployment (Recommended)
+1. Push code to GitHub
+2. Connect repository to Vercel
+3. Set environment variables in Vercel dashboard
+4. Deploy automatically
+
+### Environment Variables for Production
+```bash
+NEXTAUTH_SECRET=your-production-secret
+NEXTAUTH_URL=https://your-domain.com
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-key
+```
+
+## 🧪 Testing
+
+### Manual Testing Checklist
+- [ ] User registration flow
+- [ ] Google OAuth authentication
+- [ ] Participant registration
+- [ ] Volunteer application
+- [ ] QR code scanning
+- [ ] Mobile responsiveness
+- [ ] Real-time updates
+
+### API Testing
+Test API endpoints using tools like Postman or curl:
+```bash
+# Test participants API
+curl -X GET http://localhost:3000/api/participants
+
+# Test volunteer creation
+curl -X POST http://localhost:3000/api/volunteers \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test User","email":"test@example.com","phone":"1234567890"}'
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Authentication not working**
+   - Check Google OAuth credentials
+   - Verify redirect URIs
+   - Ensure environment variables are set
+
+2. **Database connection errors**
+   - Verify Supabase credentials
+   - Check table structure
+   - Ensure service role key has proper permissions
+
+3. **QR code scanning issues**
+   - Check camera permissions
+   - Verify QR code format
+   - Test with different browsers
+
+### Debug Mode
+Enable debug logging by adding to `.env.local`:
+```bash
+DEBUG=next-auth:*
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue in the GitHub repository
+- Check the troubleshooting section
+- Review the API documentation
+
+## 🔄 Version History
+
+- **v1.0.0** - Initial release with core functionality
+- **v1.1.0** - Added QR code scanning and volunteer management
+- **v1.2.0** - Enhanced UI/UX and mobile responsiveness
+- **v1.3.0** - Added real-time features and improved error handling
+
+---
+
+**Built with ❤️ for the Janmashtami celebration**

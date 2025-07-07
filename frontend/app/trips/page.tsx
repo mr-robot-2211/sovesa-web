@@ -1,26 +1,47 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { useSession, signIn } from "next-auth/react";
+import { apiService } from "@/lib/api";
+
+interface UserFields {
+  studentId?: string;
+  phone?: string;
+}
+
+interface UserData {
+  user: {
+    fields?: UserFields;
+  };
+}
 
 interface PaymentFormData {
     email: string;
     name: string;
-    id: string;
+  id: string;
     phone: string;
-}
-
-interface SubmissionStatus {
-    loading: boolean;
-    error: string | null;
-    success: boolean;
 }
 
 interface FormData {
     email: string;
-    name: string;
+  name: string;
     id: string;
     phone: string;
+}
+
+interface TripFields {
+    "trip-title": string;
+    "trip-sub-title": string;
+    "trip-description": string;
+    "Date": string;
+    "price": string;
+    "image-url": string;
+}
+
+interface Trip {
+    id: string;
+    fields: TripFields;
 }
 
 // Move PaymentModal outside the main component to prevent re-renders
@@ -31,15 +52,21 @@ const PaymentModal = ({
     onClose,
     onSubmit,
     onFormDataChange,
-    onFileChange
+    onFileChange,
+    isSubmitting,
+    submitError,
+    paymentFile
 }: {
     formStep: number;
     formData: PaymentFormData;
-    selectedTrip: any;
+    selectedTrip: Trip | null;
     onClose: () => void;
     onSubmit: (e: React.FormEvent) => void;
     onFormDataChange: (field: keyof PaymentFormData, value: string) => void;
     onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    isSubmitting: boolean;
+    submitError: string | null;
+    paymentFile: File | null;
 }) => (
     <motion.div
         initial={{ opacity: 0 }}
@@ -72,33 +99,14 @@ const PaymentModal = ({
                 {formStep === 1 ? (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input
-                                type="email"
-                                required
-                                value={formData.email}
-                                onChange={(e) => onFormDataChange('email', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.name}
-                                onChange={(e) => onFormDataChange('name', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
                             <input
                                 type="text"
                                 required
                                 value={formData.id}
                                 onChange={(e) => onFormDataChange('id', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                placeholder="Enter your student ID"
                             />
                         </div>
                         <div>
@@ -108,7 +116,8 @@ const PaymentModal = ({
                                 required
                                 value={formData.phone}
                                 onChange={(e) => onFormDataChange('phone', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                placeholder="Enter your phone number"
                             />
                         </div>
                     </>
@@ -134,44 +143,91 @@ const PaymentModal = ({
                                 required
                                 accept="image/*"
                                 onChange={onFileChange}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
+                            {paymentFile && (
+                                <p className="mt-2 text-sm text-green-600">
+                                    ✓ Selected: {paymentFile.name}
+                                </p>
+                            )}
                         </div>
+                        {submitError && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-red-800 text-sm">{submitError}</p>
+                            </div>
+                        )}
                     </div>
                 )}
                 <button
                     type="submit"
-                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg
-                        hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                    disabled={isSubmitting}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg
+                        hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {formStep === 1 ? "Next" : "Submit"}
+                    {isSubmitting ? "Submitting..." : (formStep === 1 ? "Next" : "Submit")}
                 </button>
             </form>
         </motion.div>
     </motion.div>
 );
 
-export default function Trips() {
+// Login Dialog Component
+const LoginDialog = ({ onClose }: { onClose: () => void }) => (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+    >
+        <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-8 max-w-md w-full text-center"
+        >
+            <div className="text-6xl mb-4">🔐</div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Login Required</h3>
+            <p className="text-gray-600 mb-6">
+                Please log in with your Google account to register for this trip.
+            </p>
+            <div className="flex gap-4">
+                <button
+                    onClick={onClose}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={() => signIn("google")}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                >
+                    Login with Google
+                </button>
+            </div>
+        </motion.div>
+    </motion.div>
+);
+
+export default function TripsPage() {
     // All hooks must be called before any conditional returns
-    const [trips, setTrips] = useState<any[]>([]);
+    const [trips, setTrips] = useState<Trip[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [expandedCard, setExpandedCard] = useState<string | null>(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [formStep, setFormStep] = useState(1);
-    const [selectedTrip, setSelectedTrip] = useState<any>(null);
+    const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
     const [formData, setFormData] = useState<FormData>({
         email: "",
         name: "",
         id: "",
         phone: "",
     });
-    const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>({
-        loading: false,
-        error: null,
-        success: false
-    });
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [paymentFile, setPaymentFile] = useState<File | null>(null);
+    const [showLoginDialog, setShowLoginDialog] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     
     // Refs and scroll hooks
     const containerRef = useRef<HTMLDivElement>(null);
@@ -184,128 +240,155 @@ export default function Trips() {
         [1, 0]
     );
 
+    const session = useSession();
+
     useEffect(() => {
-        fetch("http://localhost:8000/api/trips/")
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! Status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then((data) => {
+        const fetchTrips = async () => {
+            const result = await apiService.getTrips();
+            if (result.success && result.data) {
+                const data = result.data as { records: Trip[] };
                 setTrips(data.records || []);
                 setLoading(false);
-            })
-            .catch((err) => {
-                setError(err.message);
+            } else {
+                setError(result.error || 'Failed to fetch trips');
                 setLoading(false);
-            });
+            }
+        };
+
+        fetchTrips();
     }, []);
+
+    // Load user data when session changes
+    useEffect(() => {
+        if (session.data?.user?.email) {
+            loadUserData();
+        }
+    }, [session.data]);
+
+    const loadUserData = async () => {
+        try {
+            const result = await apiService.getUserByEmail(session.data?.user?.email || "");
+            
+            if (result.success && result.data && typeof result.data === 'object' && 'user' in result.data) {
+                const user = (result.data as UserData).user;
+                setFormData(prev => ({
+                    ...prev,
+                    email: session.data?.user?.email || "",
+                    name: session.data?.user?.name || "",
+                    id: user.fields?.studentId || "",
+                    phone: user.fields?.phone || "",
+                }));
+            } else {
+                // If user not found in database, use session data
+                setFormData(prev => ({
+                    ...prev,
+                    email: session.data?.user?.email || "",
+                    name: session.data?.user?.name || "",
+                    id: "",
+                    phone: "",
+                }));
+            }
+        } catch (error) {
+            console.error("Error loading user data:", error);
+            // Fallback to session data
+            setFormData(prev => ({
+                ...prev,
+                email: session.data?.user?.email || "",
+                name: session.data?.user?.name || "",
+                id: "",
+                phone: "",
+            }));
+        }
+    };
 
     const handleCardExpand = (tripId: string) => {
         setExpandedCard(expandedCard === tripId ? null : tripId);
     };
 
-    const handleJoinNow = (trip: any) => {
+    const handleJoinNow = async (trip: Trip) => {
+        // Check if user is authenticated
+        if (!session.data) {
+            setShowLoginDialog(true);
+            return;
+        }
+        
         setSelectedTrip(trip);
         setShowPaymentModal(true);
         setFormStep(1);
+        
+        // Load user data to auto-fill the form
+        await loadUserData();
     };
 
-    const handleFormDataChange = useCallback((field: keyof PaymentFormData, value: string) => {
+    const handleFormDataChange = (field: keyof FormData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-    }, []);
+    };
 
-    const handleFormSubmit = useCallback((e: React.FormEvent) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setPaymentFile(e.target.files[0]);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formStep === 1) {
             setFormStep(2);
         } else {
-            if (!selectedTrip) {
-                console.error('No trip selected');
-                setSubmissionStatus(prev => ({
-                    ...prev,
-                    error: "No trip selected. Please try again."
-                }));
-                return;
-            }
-
-            const jsonData = {
-                email: formData.email,
-                name: formData.name,
-                student_id: formData.id,
-                phone: formData.phone,
-                tripId: selectedTrip.fields["trip-title"]
-            };
-
-            setSubmissionStatus(prev => ({ ...prev, loading: true, error: null }));
-
-            // Send the form data to the backend
-            fetch('http://127.0.0.1:8000/api/trips-registration/', {
-                method: 'POST',
-                headers: {
-                    "Accept": "application/json",
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(jsonData),
-            })
-            .then(async response => {
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => null);
-                    console.error('API Error Response:', errorData);
-                    throw new Error(errorData?.detail || `HTTP error! Status: ${response.status}`);
+            setIsSubmitting(true);
+            setSubmitError(null);
+            try {
+                // Create FormData for file upload
+                const formDataToSend = new FormData();
+                formDataToSend.append('name', formData.name);
+                formDataToSend.append('email', formData.email);
+                formDataToSend.append('phone', formData.phone);
+                formDataToSend.append('student_id', formData.id);
+                formDataToSend.append('trips', selectedTrip?.fields["trip-title"] || "");
+                
+                // Add payment file if selected
+                if (paymentFile) {
+                    formDataToSend.append('paymentFile', paymentFile);
                 }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Success:', data);
-                setShowPaymentModal(false);
-                setFormStep(1);
-                // Reset form data
-                setFormData({
-                    email: "",
-                    name: "",
-                    id: "",
-                    phone: "",
+
+                // Send registration with file upload
+                const response = await fetch('/api/trips-registration', {
+                    method: 'POST',
+                    body: formDataToSend,
                 });
-                // Show success dialog
-                setShowSuccessDialog(true);
-                // Hide success dialog after 5 seconds
-                setTimeout(() => {
-                    setShowSuccessDialog(false);
-                }, 5000);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                setSubmissionStatus(prev => ({
-                    ...prev,
-                    loading: false,
-                    error: error.message || "Failed to submit form. Please try again."
-                }));
-            });
+
+                const result = await response.json();
+                
+                if (response.ok && result.message) {
+                    setShowSuccessDialog(true);
+                    setShowPaymentModal(false);
+                    setPaymentFile(null);
+                } else {
+                    setSubmitError(result.error || 'Submission failed');
+                }
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+                setSubmitError(errorMessage);
+            } finally {
+                setIsSubmitting(false);
+            }
         }
-    }, [formStep, formData, selectedTrip]);
+    };
 
-    const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
-        setFormData(prev => ({ ...prev, paymentScreenshot: files[0] }));
-    }, []);
-
-    const closeModal = useCallback(() => {
+    const handleCloseModal = () => {
         setShowPaymentModal(false);
         setFormStep(1);
         setFormData({
             email: "",
             name: "",
             id: "",
-            phone: "",
+          phone: "",
         });
-    }, []);
+    };
 
     // Render functions
     const renderLoading = () => (
-        <div className="h-screen w-screen flex items-center justify-center bg-white relative overflow-hidden">
+        <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6f2] relative overflow-hidden">
             {/* Background Image */}
             <div className="absolute inset-0 opacity-5">
                 <Image
@@ -326,7 +409,7 @@ export default function Trips() {
                 <div className="relative">
                     {/* Outer rotating circle */}
                     <motion.div
-                        className="w-16 h-16 rounded-full border-2 border-gray-200 border-t-gray-800"
+                        className="w-16 h-16 rounded-full border-2 border-gray-200 border-t-green-600"
                         animate={{ rotate: 360 }}
                         transition={{
                             duration: 1.5,
@@ -337,7 +420,7 @@ export default function Trips() {
                     
                     {/* Inner pulsing dot */}
                     <motion.div
-                        className="absolute top-1/2 left-1/2 w-2 h-2 bg-gray-800 rounded-full -translate-x-1/2 -translate-y-1/2"
+                        className="absolute top-1/2 left-1/2 w-2 h-2 bg-green-600 rounded-full -translate-x-1/2 -translate-y-1/2"
                         animate={{
                             scale: [1, 1.2, 1],
                             opacity: [1, 0.8, 1]
@@ -351,15 +434,15 @@ export default function Trips() {
                 </div>
                 
                 <div className="flex flex-col items-center gap-1">
-                    <span className="text-gray-800 text-sm font-light tracking-[0.2em]">PREPARING</span>
-                    <span className="text-gray-500 text-xs font-light tracking-wider">YOUR JOURNEY</span>
-                </div>
-            </motion.div>
+                    <span className="text-green-700 text-sm font-light tracking-[0.2em]">PREPARING</span>
+                    <span className="text-gray-500 text-xs font-light tracking-wider">YOUR SOUL WALK</span>
         </div>
+            </motion.div>
+      </div>
     );
 
     const renderError = () => (
-        <div className="h-screen w-screen flex items-center justify-center bg-white text-gray-800 p-4">
+        <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6f2] text-gray-800 p-4">
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -372,7 +455,7 @@ export default function Trips() {
         </div>
     );
 
-    const renderTrip = (trip: any, index: number) => (
+    const renderTrip = (trip: Trip, index: number) => (
         <motion.div
             key={trip.id}
             className={`relative w-full max-w-[1200px] mx-auto bg-white rounded-xl shadow-lg 
@@ -392,7 +475,7 @@ export default function Trips() {
                     className="transition-transform duration-1000 group-hover:scale-105"
                     priority={index < 2}
                 />
-            </div>
+      </div>
 
             <motion.div 
                 className={`w-full lg:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-center 
@@ -402,12 +485,12 @@ export default function Trips() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.2 }}
             >
-                <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 
-                    text-indigo-600 text-sm mb-6 w-fit font-medium`}>
+                <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r from-green-50 to-emerald-50 
+                    text-green-600 text-sm mb-6 w-fit font-medium`}>
                     {trip.fields["Date"]}
                 </div>
                 <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 bg-clip-text text-transparent 
-                    bg-gradient-to-r from-blue-600 to-purple-600">
+                    bg-gradient-to-r from-green-600 to-emerald-600">
                     {trip.fields["trip-title"]}
                 </h2>
                 <p className="text-base sm:text-lg lg:text-xl text-gray-700 mb-4">
@@ -418,11 +501,14 @@ export default function Trips() {
                 </p>
                 
                 <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => expandedCard === trip.id ? handleJoinNow(trip) : handleCardExpand(trip.id)}
-                    className="px-6 sm:px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-full 
-                        hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit"
+                    onClick={() => {
+                        if (expandedCard === trip.id) {
+                            handleJoinNow(trip);
+                        } else {
+                            handleCardExpand(trip.id);
+                        }
+                    }}
+                    className="px-6 sm:px-8 py-3 font-medium rounded-full transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-fit bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                     {expandedCard === trip.id ? "Join Now!" : "View More"}
                 </motion.button>
@@ -435,7 +521,7 @@ export default function Trips() {
     if (error) return renderError();
 
     return (
-        <div className="bg-gradient-to-br from-white to-gray-50 min-h-screen overflow-x-hidden relative">
+        <div className="bg-[#f7f6f2] min-h-screen overflow-x-hidden relative">
             {/* Background decorative elements */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none select-none">
                 {/* Gaur Nitai Pattern */}
@@ -461,32 +547,32 @@ export default function Trips() {
                         alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
-                    />
-                </div>
+                />
+              </div>
                 <div className="absolute top-[30vh] left-[20vw] w-28 h-36 opacity-30">
                     <Image
                         src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
                         alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
-                    />
-                </div>
+                />
+              </div>
                 <div className="absolute top-[60vh] right-[15vw] w-44 h-52 opacity-30">
                     <Image
                         src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
                         alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
-                    />
-                </div>
+                />
+              </div>
                 <div className="absolute top-[90vh] right-[25vw] w-36 h-44 opacity-30">
                     <Image
                         src="https://static.wixstatic.com/media/3a7614_6984eec9dbe44d1d8da18afde0189405~mv2.png/v1/fill/w_232,h_289,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/GAUR%20NITAI%20Png.png"
                         alt="Gaur Nitai"
                         layout="fill"
                         objectFit="contain"
-                    />
-                </div>
+                />
+              </div>
             </div>
             <motion.div 
                 ref={containerRef}
@@ -496,237 +582,80 @@ export default function Trips() {
                 transition={{ duration: 1 }}
             >
                 <motion.div 
-                    className="fixed top-20 left-0 right-0 h-[20vh] sm:h-[25vh] flex items-center justify-center bg-white z-[5]"
-                    style={{
-                        opacity: headerOpacity
-                    }}
+                    className="fixed top-20 left-0 right-0 h-[20vh] sm:h-[25vh] flex items-center justify-center z-[5]"
+                    style={{ opacity: headerOpacity }}
                 >
-                    <h1 
-                        className="text-4xl sm:text-6xl font-bold text-center px-4 pb-1 max-w-4xl leading-relaxed
-                            bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600"
-                    >
-                        Discover Amazing Journeys
-                    </h1>
+                    <div className="text-center">
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-clip-text text-transparent 
+                            bg-gradient-to-r from-green-600 to-emerald-600 mb-2">
+                            Soul Walks
+                        </h1>
+                        <p className="text-gray-600 text-lg sm:text-xl">
+                            Embark on spiritual journeys that transform your soul
+                        </p>
+                    </div>
                 </motion.div>
 
-                <div className="relative py-8 sm:py-16 px-4 sm:px-8 max-w-[90rem] mx-auto mt-[20vh] sm:mt-[25vh]">
-                    <div className="flex flex-col gap-12 sm:gap-16 lg:gap-24">
-                        {trips.map((trip, index) => renderTrip(trip, index))}
-                    </div>
-
-                    {trips.length === 0 && (
-                        <div className="h-[50vh] flex items-center justify-center">
-                            <motion.div 
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="text-center"
-                            >
-                                <h2 className="text-2xl sm:text-3xl font-light mb-4 bg-clip-text text-transparent 
-                                    bg-gradient-to-r from-blue-600 to-purple-600">
-                                    No Journeys Available
-                                </h2>
-                                <p className="text-gray-600">Check back soon for new adventures</p>
-                            </motion.div>
-                        </div>
-                    )}
+                <div className="space-y-16 sm:space-y-20 lg:space-y-24 pt-[25vh] sm:pt-[30vh] pb-16">
+                    {trips.map((trip, index) => renderTrip(trip, index))}
                 </div>
             </motion.div>
 
-            {/* Success Dialog */}
-            {showSuccessDialog && (
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                >
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl"
-                    >
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                            </div>
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h3>
-                            <p className="text-gray-600 mb-6">
-                                Thank you for registering. We will contact you soon with further details about your trip.
-                            </p>
-                            <button
-                                onClick={() => setShowSuccessDialog(false)}
-                                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium 
-                                    hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </motion.div>
-                </motion.div>
-            )}
+            {/* Login Dialog */}
+            <AnimatePresence>
+                {showLoginDialog && (
+                    <LoginDialog onClose={() => setShowLoginDialog(false)} />
+                )}
+            </AnimatePresence>
 
             {/* Payment Modal */}
-            {showPaymentModal && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                >
+            <AnimatePresence>
+                {showPaymentModal && (
+                    <PaymentModal
+                        formStep={formStep}
+                        formData={formData}
+                        selectedTrip={selectedTrip}
+                        onClose={handleCloseModal}
+                        onSubmit={handleSubmit}
+                        onFormDataChange={handleFormDataChange}
+                        onFileChange={handleFileChange}
+                        isSubmitting={isSubmitting}
+                        submitError={submitError}
+                        paymentFile={paymentFile}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Success Dialog */}
+            <AnimatePresence>
+                {showSuccessDialog && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl"
-                    >
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900">
-                                {formStep === 1 ? "Personal Details" : "Registration Confirmation"}
-                            </h2>
-                            <button
-                                onClick={() => {
-                                    setShowPaymentModal(false);
-                                    setFormStep(1);
-                                    setFormData({
-                                        email: "",
-                                        name: "",
-                                        id: "",
-                                        phone: "",
-                                    });
-                                }}
-                                className="text-gray-500 hover:text-gray-700"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleFormSubmit} className="space-y-6">
-                            {formStep === 1 ? (
-                                <>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-700">Email</label>
-                                        <input
-                                            type="email"
-                                            value={formData.email}
-                                            onChange={(e) => setFormData((prev: FormData) => ({ ...prev, email: e.target.value }))}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                            required
-                                            disabled={submissionStatus.loading}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-700">Name</label>
-                                        <input
-                                            type="text"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData((prev: FormData) => ({ ...prev, name: e.target.value }))}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                            required
-                                            disabled={submissionStatus.loading}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-700">ID Number</label>
-                                        <input
-                                            type="text"
-                                            value={formData.id}
-                                            onChange={(e) => setFormData((prev: FormData) => ({ ...prev, id: e.target.value }))}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                            required
-                                            disabled={submissionStatus.loading}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-700">Phone Number</label>
-                                        <input
-                                            type="tel"
-                                            value={formData.phone}
-                                            onChange={(e) => setFormData((prev: FormData) => ({ ...prev, phone: e.target.value }))}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                            required
-                                            disabled={submissionStatus.loading}
-                                        />
-                                    </div>
-
-                                    <div className="flex justify-end">
-                                        <button
-                                            type="submit"
-                                            className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium 
-                                                hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg
-                                                disabled:opacity-50 disabled:cursor-not-allowed"
-                                            disabled={submissionStatus.loading}
-                                        >
-                                            {submissionStatus.loading ? "Processing..." : "Next"}
-                                        </button>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="space-y-6">
-                                    <div className="bg-gray-50 p-6 rounded-lg">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Registration Summary</h3>
-                                        <div className="space-y-2">
-                                            <p className="text-gray-600">
-                                                <span className="font-medium">Email:</span> {formData.email}
-                                            </p>
-                                            <p className="text-gray-600">
-                                                <span className="font-medium">Name:</span> {formData.name}
-                                            </p>
-                                            <p className="text-gray-600">
-                                                <span className="font-medium">ID Number:</span> {formData.id}
-                                            </p>
-                                            <p className="text-gray-600">
-                                                <span className="font-medium">Phone:</span> {formData.phone}
-                                            </p>
-                                            <p className="text-gray-600">
-                                                <span className="font-medium">Trip:</span> {selectedTrip.fields["trip-title"]}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-between">
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormStep(1)}
-                                            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium 
-                                                hover:bg-gray-50 transition-all duration-300"
-                                            disabled={submissionStatus.loading}
-                                        >
-                                            Back
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium 
-                                                hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg
-                                                disabled:opacity-50 disabled:cursor-not-allowed"
-                                            disabled={submissionStatus.loading}
-                                        >
-                                            {submissionStatus.loading ? "Submitting..." : "Confirm Registration"}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </form>
-
-                        {submissionStatus.error && (
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="mt-4 text-center text-red-500 text-sm"
-                            >
-                                {submissionStatus.error}
-                            </motion.p>
-                        )}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+                >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white rounded-xl p-8 max-w-md text-center"
+                        >
+                            <div className="text-green-500 text-6xl mb-4">✅</div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Booking Successful!</h3>
+                            <p className="text-gray-600 mb-6">
+                                Your soul walk booking has been confirmed. We&apos;ll contact you soon with further details.
+                            </p>
+                <button
+                                onClick={() => setShowSuccessDialog(false)}
+                                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                >
+                                Close
+                </button>
+                        </motion.div>
                     </motion.div>
-                </motion.div>
-            )}
-        </div>
-    );
+      )}
+            </AnimatePresence>
+    </div>
+  );
 }
